@@ -1,0 +1,99 @@
+{
+    "name": "ddt",
+    "publisher": "Spencer James",
+    "displayName": "Development-Driven Tests",
+    "description": "Generate C#/.NET Xunit test class with test methods for each public method.",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Testing"
+    ],
+    "activationEvents": [],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "spencerjames.ddt",
+                "title": "DDT: Generate C#/.NET Xunit Test Class with Methods"
+            }
+        ],
+        "configuration": {
+            "title": "Development-Driven Tests",
+            "properties": {
+                "ddt.indicateTypeNullability": {
+                    "title": "Indicate Type Nullability",
+                    "description": "Indicate variable type nullability (i.e. T?).",
+                    "type": "boolean",
+                    "default": true
+                },
+                "ddt.typesNotToBeIndicatedAsNullable": {
+                    "title": "Types Not to be Indicated as Nullable",
+                    "description": "Types not to be indicated as nullable.",
+                    "type": "array",
+                    "default": [
+                        "void",
+                        "bool",
+                        "Boolean",
+                        "byte",
+                        "Byte",
+                        "char",
+                        "Char",
+                        "decimal",
+                        "Decimal",
+                        "double",
+                        "Double",
+                        "float",
+                        "int",
+                        "Int16",
+                        "Int32",
+                        "Int64",
+                        "IntPtr",
+                        "long",
+                        "nint",
+                        "nuint",
+                        "sbyte",
+                        "SByte",
+                        "short",
+                        "Single",
+                        "uint",
+                        "UInt16",
+                        "UInt32",
+                        "UInt64",
+                        "UIntPtr",
+                        "ulong",
+                        "ushort"
+                    ]
+                },
+                "ddt.objectTypeForGenericParameters": {
+                    "title": "Object Type for Generic Parameters",
+                    "description": "Use the object type in place of generic type parameters.",
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/glob": "^8.1.0",
+        "@types/mocha": "^10.0.1",
+        "@types/node": "20.2.5",
+        "@types/vscode": "^1.80.0",
+        "@typescript-eslint/eslint-plugin": "^5.62.0",
+        "@typescript-eslint/parser": "^5.62.0",
+        "@vscode/test-electron": "^2.3.3",
+        "eslint": "^8.45.0",
+        "glob": "^8.1.0",
+        "mocha": "^10.2.0",
+        "typescript": "^5.1.6"
+    }
+}
