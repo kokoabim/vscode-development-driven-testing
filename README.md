@@ -1,10 +1,12 @@
 ## Features
 
-VS Code extension to generate C#/.NET Xunit test class with test methods. Currently it is only copied to the clipboard.
+Generate C#/.NET Xunit test class with test methods. If test-driven development (TDD) wasn't followed initially, try Development-Driven Testing (DDT) to increase code coverage and decrease technical debt.
+
+Currently this VS Code extension only copies to the clipboard. In a future release it will add to existing or create new test files.
 
 ## Requirements
 
-Tech debt. 🤷🏼‍♂️
+Tech debt; missing unit tests. 🤷🏼‍♂️
 
 ## Extension Settings
 
@@ -17,10 +19,10 @@ Tech debt. 🤷🏼‍♂️
 
 ## Known Issues
 
-Most, if not all, you can append "... (for now)." to the following. As in, these will be addressed.
+Most, if not all, of the following you can append "... (for now)". As in, these will be addressed.
 
 - A _lot_ is assumed.
-- Copies to clipboard. Does not generate, nor write to, files.
+- Copies to clipboard. Does not create, nor write to, files.
 - Does not account for public methods on base classes.
 - Does not take advantage of interfaces used on classes.
 - Not automatically using mocks where applicable.

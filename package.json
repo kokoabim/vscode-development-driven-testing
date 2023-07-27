@@ -1,26 +1,45 @@
 {
     "name": "ddt",
-    "publisher": "Spencer James",
-    "displayName": "Development-Driven Tests",
-    "description": "Generate C#/.NET Xunit test class with test methods for each public method.",
+    "publisher": "spencerjames",
     "version": "0.0.1",
+    "description": "Generate C#/.NET Xunit test class with test methods. If test-driven development (TDD) wasn't followed initially, try Development-Driven Testing (DDT) to increase code coverage and decrease technical debt.",
+    "displayName": "Development-Driven Testing",
+    "author": {
+        "name": "Spencer James (kokoabim)",
+        "email": "dev@kokoabim.com",
+        "url": "https://swsj.me/"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/kokoabim/vscode-development-driven-testing"
+    },
+    "license": "SEE LICENSE IN LICENSE.md",
+    "icon": "./out/images/ddt-icon-128px.png",
     "engines": {
         "vscode": "^1.80.0"
     },
     "categories": [
         "Testing"
     ],
+    "keywords": [
+        "xunit",
+        "test",
+        "testing",
+        "tdd",
+        "ddt"
+    ],
     "activationEvents": [],
     "main": "./out/extension.js",
     "contributes": {
         "commands": [
             {
-                "command": "spencerjames.ddt",
-                "title": "DDT: Generate C#/.NET Xunit Test Class with Methods"
+                "command": "kokoabim.ddt.copy-test-class-with-test-methods",
+                "title": "Generate test class with test methods",
+                "category": "DDT"
             }
         ],
         "configuration": {
-            "title": "Development-Driven Tests",
+            "title": "Development-Driven Testing (DDT)",
             "properties": {
                 "ddt.indicateTypeNullability": {
                     "title": "Indicate Type Nullability",
@@ -33,7 +52,6 @@
                     "description": "Types not to be indicated as nullable.",
                     "type": "array",
                     "default": [
-                        "void",
                         "bool",
                         "Boolean",
                         "byte",
@@ -57,13 +75,29 @@
                         "SByte",
                         "short",
                         "Single",
+                        "System.Boolean",
+                        "System.Byte",
+                        "System.Char",
+                        "System.Decimal",
+                        "System.Double",
+                        "System.Int16",
+                        "System.Int32",
+                        "System.Int64",
+                        "System.IntPtr",
+                        "System.SByte",
+                        "System.Single",
+                        "System.UInt16",
+                        "System.UInt32",
+                        "System.UInt64",
+                        "System.UIntPtr",
                         "uint",
                         "UInt16",
                         "UInt32",
                         "UInt64",
                         "UIntPtr",
                         "ulong",
-                        "ushort"
+                        "ushort",
+                        "void"
                     ]
                 },
                 "ddt.objectTypeForGenericParameters": {
@@ -73,11 +107,19 @@
                     "default": true
                 }
             }
+        },
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "kokoabim.ddt.copy-test-class-with-test-methods",
+                    "when": "editorLangId == csharp"
+                }
+            ]
         }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
+        "compile": "tsc -p ./ && copyfiles images/ddt-icon-128px.png out/",
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile && npm run lint",
         "lint": "eslint src --ext ts",
@@ -86,13 +128,14 @@
     "devDependencies": {
         "@types/glob": "^8.1.0",
         "@types/mocha": "^10.0.1",
-        "@types/node": "20.2.5",
+        "@types/node": "20.4.5",
         "@types/vscode": "^1.80.0",
-        "@typescript-eslint/eslint-plugin": "^5.62.0",
-        "@typescript-eslint/parser": "^5.62.0",
+        "@typescript-eslint/eslint-plugin": "^6.2.0",
+        "@typescript-eslint/parser": "^6.2.0",
         "@vscode/test-electron": "^2.3.3",
+        "esbuild": "^0.18.17",
         "eslint": "^8.45.0",
-        "glob": "^8.1.0",
+        "glob": "^10.3.3",
         "mocha": "^10.2.0",
         "typescript": "^5.1.6"
     }

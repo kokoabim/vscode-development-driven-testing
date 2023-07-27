@@ -11,6 +11,19 @@
             },
             "group": {
                 "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "type": "npm",
+            "script": "pretest",
+            "problemMatcher": "$tsc",
+            "isBackground": false,
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": {
+                "kind": "build",
                 "isDefault": true
             }
         }
