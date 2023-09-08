@@ -1,6 +1,6 @@
 import * as path from 'path';
-import * as Mocha from 'mocha';
 import { glob } from 'glob';
+import Mocha from 'mocha';
 
 export function run(): Promise<void> {
     const mocha = new Mocha({
@@ -8,7 +8,7 @@ export function run(): Promise<void> {
         color: true
     });
 
-    const testsRoot = path.resolve(__dirname, '..');
+    const testsRoot = path.resolve(__dirname, '.');
 
     return new Promise((c, e) => {
         glob('**/**.test.js', { cwd: testsRoot }).then(files => {
@@ -26,7 +26,7 @@ export function run(): Promise<void> {
                 console.error(err);
                 e(err);
             }
-        }, err => {
+        }).catch(err => {
             if (err) {
                 return e(err);
             }

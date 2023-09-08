@@ -1,12 +1,8 @@
-import * as vscode from 'vscode';
-import { DevelopmentDrivenTestingVSCodeCommands } from './developmentDrivenTestingVSCodeCommands';
+import * as vscode from "vscode";
+import { DevelopmentDrivenTestingVSCodeExtension } from "./VSCodeExtension/DevelopmentDrivenTestingVSCodeExtension";
 
 export function activate(context: vscode.ExtensionContext) {
-    const vsCodeCommands = new DevelopmentDrivenTestingVSCodeCommands();
-
-    vsCodeCommands.commands.forEach(c => {
-        context.subscriptions.push(vscode.commands.registerCommand(c.name, c.command));
-    });
+    DevelopmentDrivenTestingVSCodeExtension.use(context);
 }
 
 export function deactivate() { }

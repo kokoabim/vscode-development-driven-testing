@@ -1,7 +1,7 @@
 {
     "name": "ddt",
     "publisher": "spencerjames",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Generate C#/.NET Xunit test class with test methods. If test-driven development (TDD) wasn't followed initially, try Development-Driven Testing (DDT) to increase code coverage and decrease technical debt.",
     "displayName": "Development-Driven Testing",
     "author": {
@@ -9,15 +9,20 @@
         "email": "dev@kokoabim.com",
         "url": "https://swsj.me/"
     },
+    "bugs": {
+        "url": "https://github.com/kokoabim/vscode-development-driven-testing/issues",
+        "email": "dev@kokoabim.com"
+    },
     "repository": {
         "type": "git",
         "url": "https://github.com/kokoabim/vscode-development-driven-testing"
     },
     "license": "SEE LICENSE IN LICENSE.md",
-    "icon": "./out/images/ddt-icon-128px.png",
+    "icon": "./dist/images/ddt-icon-128px.png",
     "engines": {
-        "vscode": "^1.80.0"
+        "vscode": "^1.70.0"
     },
+    "homepage": "https://github.com/kokoabim/vscode-development-driven-testing/blob/main/README.md",
     "categories": [
         "Testing"
     ],
@@ -29,13 +34,25 @@
         "ddt"
     ],
     "activationEvents": [],
-    "main": "./out/extension.js",
+    "main": "./dist/extension.js",
     "contributes": {
         "commands": [
             {
-                "command": "kokoabim.ddt.copy-test-class-with-test-methods",
-                "title": "Generate test class with test methods",
-                "category": "DDT"
+                "category": "DDT",
+                "title": "Copy C# Xunit test classes for current file",
+                "command": "kokoabim.ddt.copy-test-classes-for-file",
+                "enablement": "editorLangId == csharp"
+            },
+            {
+                "category": "DDT",
+                "title": "Create C# Xunit test files for current file",
+                "command": "kokoabim.ddt.create-test-files-for-file",
+                "enablement": "editorLangId == csharp"
+            },
+            {
+                "category": "DDT",
+                "title": "Create C# Xunit test files for all files in current project",
+                "command": "kokoabim.ddt.create-test-files-for-project"
             }
         ],
         "configuration": {
@@ -45,7 +62,7 @@
                     "title": "Indicate Type Nullability",
                     "description": "Indicate variable type nullability (i.e. T?).",
                     "type": "boolean",
-                    "default": true
+                    "default": false
                 },
                 "ddt.typesNotToBeIndicatedAsNullable": {
                     "title": "Types Not to be Indicated as Nullable",
@@ -105,13 +122,47 @@
                     "description": "Use the object type in place of generic type parameters.",
                     "type": "boolean",
                     "default": true
+                },
+                "ddt.reservedMethodNames": {
+                    "title": "Reserved Method Names",
+                    "description": "If a class has a method with one of these names, its test method will include the 'new' modifier.",
+                    "type": "array",
+                    "default": [
+                        "Equals",
+                        "GetHashCode",
+                        "GetType",
+                        "MemberwiseClone",
+                        "ToString"
+                    ]
+                },
+                "ddt.usingsFileContent": {
+                    "title": "Usings File Content",
+                    "description": "When generated (if it does not exist), test project `Usings.cs` file content.",
+                    "type": "string",
+                    "default": "global using Xunit;\n"
+                },
+                "ddt.useOnlyNewOperatorForInstanceInstantiation": {
+                    "title": "Use only 'new' Operator for Instance Instantiation",
+                    "description": "Beginning with C# 9.0, constructor invocation expressions are target-typed. That is, if a target type of an expression is known, you can omit a type name.",
+                    "type": "boolean",
+                    "default": false
+                },
+                "ddt.testClassNamePrefixIfFileAlreadyExists": {
+                    "title": "Test Class Name Prefix if File Already Exists",
+                    "description": "If a test class file already exists, this prefix will be added to the test class name and appended to the file.",
+                    "type": "string",
+                    "default": "Ddt"
                 }
             }
         },
         "menus": {
             "editor/context": [
                 {
-                    "command": "kokoabim.ddt.copy-test-class-with-test-methods",
+                    "command": "kokoabim.ddt.copy-test-classes-for-file",
+                    "when": "editorLangId == csharp"
+                },
+                {
+                    "command": "kokoabim.ddt.create-test-files-for-file",
                     "when": "editorLangId == csharp"
                 }
             ]
@@ -119,16 +170,15 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./ && copyfiles images/ddt-icon-128px.png out/",
+        "compile": "tsc -p ./ && copyfiles images/ddt-icon-128px.png dist/",
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile && npm run lint",
         "lint": "eslint src --ext ts",
-        "test": "node ./out/test/runTest.js"
+        "test": "node ./dist/test/vscode/runVSCodeTest.js"
     },
     "devDependencies": {
-        "@types/glob": "^8.1.0",
         "@types/mocha": "^10.0.1",
-        "@types/node": "20.4.5",
+        "@types/node": "^20.4.8",
         "@types/vscode": "^1.80.0",
         "@typescript-eslint/eslint-plugin": "^6.2.0",
         "@typescript-eslint/parser": "^6.2.0",
@@ -137,6 +187,10 @@
         "eslint": "^8.45.0",
         "glob": "^10.3.3",
         "mocha": "^10.2.0",
+        "nyc": "^15.1.0",
         "typescript": "^5.1.6"
+    },
+    "dependencies": {
+        "minimatch": "9.0.3"
     }
 }
