@@ -54,7 +54,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
             const [document, documentRelativePath] = await this.cSharpFileOrProjectOpenOrSelected();
             if (!document) { return; }
 
-            const testProject = await this.getTestProject();
+            const testProject = await this.getCSharpTestProjectFile();
             if (!testProject) { return; }
 
             try {
@@ -99,8 +99,16 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
                 return;
             }
 
-            const testProject = await this.getTestProject();
-            if (!testProject) { return; }
+            const cSharpTestProjectFile = await this.getCSharpTestProjectFile();
+            if (!cSharpTestProjectFile) { return; }
+
+            if ("Yes" !== (await vscode.window.showInformationMessage(
+                `Create C# Xunit test files?`,
+                {
+                    modal: true,
+                    detail: `C# Xunit test files will be created, or append to, in project ${cSharpTestProjectFile.name} for ${cSharpFiles.length} C# files from project ${cSharpProjectFile.name}.`,
+                },
+                "Yes", "No"))) { return; }
 
             let testClasses: CSharpXunitTestClass[] = [];
             for await (const cSharpFile of cSharpFiles) {
@@ -118,7 +126,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
                 return;
             }
 
-            await this.writeOrAppendToTestFiles(testClasses, testProject, false);
+            await this.writeOrAppendToTestFiles(testClasses, cSharpTestProjectFile, false);
         });
     }
 
@@ -186,7 +194,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
     }
 
 
-    private async getTestProject(): Promise<CSharpProjectFile | undefined> {
+    private async getCSharpTestProjectFile(): Promise<CSharpProjectFile | undefined> {
         const testProjects = (await CSharpProjectFile.findProjects(this.workspaceFolder!.uri.path)).filter(p => p.isTestProject);
 
         let testProject: CSharpProjectFile | undefined;
@@ -198,7 +206,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
             testProject = testProjects[0];
         }
         else {
-            const testProjectSelected = await vscode.window.showQuickPick(testProjects.map(p => p.relativePath), { placeHolder: "Select C# test project" });
+            const testProjectSelected = await vscode.window.showQuickPick(testProjects.map(p => p.relativePath), { placeHolder: "Select C# test project to create C# Xunit test files in" });
             if (!testProjectSelected) { return; }
             testProject = testProjects.find(p => p.relativePath === testProjectSelected);
             if (!testProject) { return; }

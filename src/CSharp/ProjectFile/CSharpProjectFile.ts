@@ -8,12 +8,13 @@ export class CSharpProjectFile {
     private static _fileSystem: FileSystem = new FileSystem();
 
     constructor(
+        public readonly name: string,
         public readonly filePath: string,
         public readonly relativePath: string) { }
 
     static async findProjects(workspaceDirectory: string): Promise<CSharpProjectFile[]> {
         return await CSharpProjectFile._fileSystem.glob(workspaceDirectory + '/**/*.csproj').then(async files => {
-            const cSharpProjectFiles = files.map(f => new CSharpProjectFile(f, f.replace(workspaceDirectory, "")));
+            const cSharpProjectFiles = files.map(f => new CSharpProjectFile(CSharpProjectFile._fileSystem.fileName(f, true), f, f.replace(workspaceDirectory + "/", "")));
             for await (const f of cSharpProjectFiles) { await f.readFile(); }
             return cSharpProjectFiles;
         }, error => {
