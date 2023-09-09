@@ -23,16 +23,14 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
     }
 
     static use(context: vscode.ExtensionContext) {
-        const extension = new DevelopmentDrivenTestingVSCodeExtension(context);
+        new DevelopmentDrivenTestingVSCodeExtension(context);
     }
 
     private createCopyTestClassesForFileCommand(): VSCodeCommand {
         return new VSCodeCommand("kokoabim.ddt.copy-test-classes-for-file", async () => {
-            if (!super.isWorkspaceReady() || !this.isCSharpFileOpen()) { return; }
-
-            const document = vscode.window.activeTextEditor?.document;
+            if (!super.isWorkspaceReady()) { return; }
+            const [document, documentRelativePath] = await this.cSharpFileOrProjectOpenOrSelected();
             if (!document) { return; }
-            const documentRelativePath = vscode.workspace.asRelativePath(document.uri);
 
             try {
                 const testClasses = await this.createTestClassesForDocument(document);
@@ -46,17 +44,15 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
                 return;
             }
 
-            this.outputChannel.appendLine(`${documentRelativePath}: Sent test class(es) to clipboard.`);
+            this.outputChannel.appendLine(`${documentRelativePath}: Sent C# Xunit test class(es) to clipboard.`);
         });
     }
 
     private createCreateTestFilesForFileCommand(): VSCodeCommand {
         return new VSCodeCommand("kokoabim.ddt.create-test-files-for-file", async () => {
-            if (!super.isWorkspaceReady() || !this.isCSharpFileOpen()) { return; }
-
-            const document = vscode.window.activeTextEditor?.document;
+            if (!super.isWorkspaceReady()) { return; }
+            const [document, documentRelativePath] = await this.cSharpFileOrProjectOpenOrSelected();
             if (!document) { return; }
-            const documentRelativePath = vscode.workspace.asRelativePath(document.uri);
 
             const testProject = await this.getTestProject();
             if (!testProject) { return; }
@@ -78,31 +74,28 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         return new VSCodeCommand("kokoabim.ddt.create-test-files-for-project", async () => {
             if (!super.isWorkspaceReady()) { return; }
 
-            const document = vscode.window.activeTextEditor?.document;
-            if (!document) {
-                this.outputChannel.appendLine("No active document. Select a file in the project to create test files for.");
+            const [document, documentRelativePath] = await this.cSharpFileOrProjectOpenOrSelected();
+            if (!document) { return; }
+
+            const cSharpProjectFiles = await CSharpProjectFile.findProjects(this.workspaceFolder!.uri.path);
+            if (cSharpProjectFiles.length === 0) {
+                this.outputChannel.appendLine("No C# project found.");
                 return;
             }
 
-            const cSharpProjects = await CSharpProjectFile.findProjects(this.workspaceFolder!.uri.path);
-            if (cSharpProjects.length === 0) {
-                this.outputChannel.appendLine("No C# projects found.");
+            const cSharpProjectFile = cSharpProjectFiles.find(p => document.uri.path.includes(p.directory + "/"));
+            if (!cSharpProjectFile) {
+                this.outputChannel.appendLine("No C# project found.");
+                return;
+            }
+            else if (cSharpProjectFile.isTestProject) {
+                this.outputChannel.appendLine(`${cSharpProjectFile.relativePath}: Open or selected C# file is in a test project. Open or select a C# file that is in a non-test project.`);
                 return;
             }
 
-            const activeProject = cSharpProjects.find(p => document.uri.path.includes(p.directory));
-            if (!activeProject) {
-                this.outputChannel.appendLine("No C# project found for active document.");
-                return;
-            }
-            else if (activeProject.isTestProject) {
-                this.outputChannel.appendLine(`${activeProject.relativePath}: Active document is in a test project. Select a file in a non-test project to create test files for.`);
-                return;
-            }
-
-            const cSharpFiles = (await vscode.workspace.findFiles("**/*.cs")).filter(f => f.path.includes(activeProject.directory + "/"));
+            const cSharpFiles = (await vscode.workspace.findFiles("**/*.cs")).filter(f => f.path.includes(cSharpProjectFile.directory + "/"));
             if (cSharpFiles.length === 0) {
-                this.outputChannel.appendLine(`${activeProject.relativePath}: No C# files found.`);
+                this.outputChannel.appendLine(`${cSharpProjectFile.relativePath}: No C# files found.`);
                 return;
             }
 
@@ -121,7 +114,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
             }
 
             if (testClasses.length === 0) {
-                this.outputChannel.appendLine(`${activeProject.relativePath}: No tests generated.`);
+                this.outputChannel.appendLine(`${cSharpProjectFile.relativePath}: No tests created.`);
                 return;
             }
 
@@ -158,13 +151,13 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
 
             const testableClasses = cSharpClasses.filter(c => c.isPublic && !c.isStatic && !c.isAbstract);
             if (testableClasses.length === 0) {
-                this.outputChannel.appendLine(`${documentRelativePath}: No testable class found.`);
+                this.outputChannel.appendLine(`${documentRelativePath}: No testable C# class found.`);
                 return;
             }
 
             const testClasses = testableClasses.map(c => new CSharpXunitTestClass(c)).filter(c => c.testMethods.length > 0);
             if (testClasses.length === 0) {
-                this.outputChannel.appendLine(`${documentRelativePath}: No class with testable method found.`);
+                this.outputChannel.appendLine(`${documentRelativePath}: No C# class with testable method(s) found.`);
                 return;
             }
 
@@ -172,34 +165,46 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         });
     }
 
+    private async cSharpFileOrProjectOpenOrSelected(): Promise<[vscode.TextDocument | undefined, string | undefined]> {
+        let document;
+        try {
+            document = vscode.window.activeTextEditor?.document;
+            if (!document) {
+                await vscode.commands.executeCommand('copyFilePath');
+                const clipboard = await vscode.env.clipboard.readText();
+                if (clipboard) { document = await vscode.workspace.openTextDocument(clipboard); }
+            }
+        }
+        catch (e) { }
+
+        if (!document) {
+            this.outputChannel.appendLine("No C# file or project is open or selected.");
+            return [undefined, undefined];
+        }
+        const relativePath = vscode.workspace.asRelativePath(document.uri);
+        return [document, relativePath];
+    }
+
+
     private async getTestProject(): Promise<CSharpProjectFile | undefined> {
         const testProjects = (await CSharpProjectFile.findProjects(this.workspaceFolder!.uri.path)).filter(p => p.isTestProject);
 
         let testProject: CSharpProjectFile | undefined;
         if (testProjects.length === 0) {
-            this.outputChannel.appendLine("No C# test project found. If indeed there is a test project, make sure the project file has property IsTestProject set to true.");
+            this.outputChannel.appendLine("No C# test project found. If indeed there is a test project, make sure the project file has property `IsTestProject` set to `true`.");
             return;
         }
         else if (testProjects.length === 1) {
             testProject = testProjects[0];
         }
         else {
-            const testProjectSelected = await vscode.window.showQuickPick(testProjects.map(p => p.relativePath), { placeHolder: "Select test project" });
+            const testProjectSelected = await vscode.window.showQuickPick(testProjects.map(p => p.relativePath), { placeHolder: "Select C# test project" });
             if (!testProjectSelected) { return; }
             testProject = testProjects.find(p => p.relativePath === testProjectSelected);
             if (!testProject) { return; }
         }
 
         return testProject;
-    }
-
-    private isCSharpFileOpen(): boolean {
-        const doc = vscode.window.activeTextEditor?.document;
-        if (doc?.languageId !== "csharp") {
-            this.outputChannel.appendLine(`A C# file must be open to use ${this.extensionName}.`);
-            return false;
-        }
-        return true;
     }
 
     private async writeOrAppendToTestFiles(testClasses: CSharpXunitTestClass[], testProject: CSharpProjectFile, openFile: boolean = true) {
@@ -236,8 +241,8 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
             createdUsingsFile = true;
         }
 
-        this.outputChannel.appendLine((createdCount > 0 ? `Created ${createdCount} test file(s). ` : "")
-            + (appendedCount > 0 ? `Appended to ${appendedCount} test file(s). ` : "")
+        this.outputChannel.appendLine((createdCount > 0 ? `Created ${createdCount} C# Xunit test file(s). ` : "")
+            + (appendedCount > 0 ? `Appended to ${appendedCount} C# Xunit test file(s). ` : "")
             + (createdUsingsFile ? `Created ${CSharpXunitTestClass.usingsFileName} file.` : ""));
     }
 }

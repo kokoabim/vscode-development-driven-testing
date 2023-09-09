@@ -1,8 +1,7 @@
 .vscode/**
-images/**
+media/**
 releases/**
 src/**
-src/test/**
 
 .eslintrc.json
 .gitignore
@@ -10,8 +9,5 @@ src/test/**
 jest.config.js
 tsconfig.json
 
-**/*.map
-**/*.ts
-**/*.test.ts
-**/*.vsix
 **/.simple-s3-sync.json
+**/*.vsix

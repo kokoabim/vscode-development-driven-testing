@@ -29,7 +29,7 @@ export abstract class VSCodeExtension {
 
     protected isWorkspaceReady(): boolean {
         if (!this.isWorkspaceOpen) {
-            vscode.window.showWarningMessage(`A workspace must be open to use ${this.extensionName}.`);
+            vscode.window.showWarningMessage(`No workspace is open.`);
             return false;
         }
 

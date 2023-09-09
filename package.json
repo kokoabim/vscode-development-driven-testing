@@ -2,7 +2,7 @@
     "name": "ddt",
     "publisher": "spencerjames",
     "version": "0.1.0",
-    "description": "Generate C#/.NET Xunit test class with test methods. If test-driven development (TDD) wasn't followed initially, use Development-Driven Testing (DDT) to generate test classes and test methods to increase code coverage and decrease technical debt.",
+    "description": "Generate C#/.NET Xunit test classes with test methods for single C# files or entire projects.",
     "displayName": "Development-Driven Testing",
     "author": {
         "name": "Spencer James (kokoabim)",
@@ -18,7 +18,7 @@
         "url": "https://github.com/kokoabim/vscode-development-driven-testing"
     },
     "license": "SEE LICENSE IN LICENSE.md",
-    "icon": "./dist/images/ddt-icon-128px.png",
+    "icon": "./dist/media/ddt-icon-128px.png",
     "engines": {
         "vscode": "^1.70.0"
     },
@@ -39,20 +39,21 @@
         "commands": [
             {
                 "category": "DDT",
-                "title": "Copy C# Xunit test classes for current file",
+                "title": "Copy C# Xunit test classes for file",
                 "command": "kokoabim.ddt.copy-test-classes-for-file",
-                "enablement": "editorLangId == csharp"
+                "enablement": "editorLangId == csharp || resourceLangId == csharp"
             },
             {
                 "category": "DDT",
-                "title": "Create C# Xunit test files for current file",
+                "title": "Create C# Xunit test files for file",
                 "command": "kokoabim.ddt.create-test-files-for-file",
-                "enablement": "editorLangId == csharp"
+                "enablement": "editorLangId == csharp || resourceLangId == csharp"
             },
             {
                 "category": "DDT",
-                "title": "Create C# Xunit test files for all files in current project",
-                "command": "kokoabim.ddt.create-test-files-for-project"
+                "title": "Create C# Xunit test files for project",
+                "command": "kokoabim.ddt.create-test-files-for-project",
+                "enablement": "editorLangId == csharp || resourceLangId == csharp || resourceExtname == .csproj"
             }
         ],
         "configuration": {
@@ -183,21 +184,36 @@
             "editor/context": [
                 {
                     "command": "kokoabim.ddt.copy-test-classes-for-file",
-                    "when": "editorLangId == csharp"
+                    "when": "resourceLangId == csharp"
                 },
                 {
                     "command": "kokoabim.ddt.create-test-files-for-file",
-                    "when": "editorLangId == csharp"
+                    "when": "resourceLangId == csharp"
                 },
                 {
-                    "command": "kokoabim.ddt.create-test-files-for-project"
+                    "command": "kokoabim.ddt.create-test-files-for-project",
+                    "when": "resourceLangId == csharp || resourceExtname == .csproj"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "kokoabim.ddt.copy-test-classes-for-file",
+                    "when": "resourceLangId == csharp"
+                },
+                {
+                    "command": "kokoabim.ddt.create-test-files-for-file",
+                    "when": "resourceLangId == csharp"
+                },
+                {
+                    "command": "kokoabim.ddt.create-test-files-for-project",
+                    "when": "resourceLangId == csharp || resourceExtname == .csproj"
                 }
             ]
         }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./ && copyfiles images/ddt-icon-128px.png dist/",
+        "compile": "tsc -p ./ && copyfiles media/ddt-icon-128px.png dist/",
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile && npm run lint",
         "lint": "eslint src --ext ts",
@@ -206,18 +222,18 @@
     "devDependencies": {
         "@types/mocha": "^10.0.1",
         "@types/node": "^20.4.8",
-        "@types/vscode": "^1.80.0",
+        "@types/vscode": "^1.70.0",
         "@typescript-eslint/eslint-plugin": "^6.2.0",
         "@typescript-eslint/parser": "^6.2.0",
         "@vscode/test-electron": "^2.3.3",
         "esbuild": "^0.18.17",
         "eslint": "^8.45.0",
-        "glob": "^10.3.3",
         "mocha": "^10.2.0",
         "nyc": "^15.1.0",
         "typescript": "^5.1.6"
     },
     "dependencies": {
+        "glob": "^10.3.3",
         "minimatch": "9.0.3"
     }
 }
