@@ -32,14 +32,21 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
 
             const document = vscode.window.activeTextEditor?.document;
             if (!document) { return; }
+            const documentRelativePath = vscode.workspace.asRelativePath(document.uri);
 
-            const testClasses = await this.createTestClassesForDocument(document);
-            if (!testClasses) { return; }
+            try {
+                const testClasses = await this.createTestClassesForDocument(document);
+                if (!testClasses) { return; }
 
-            const generateSettings = this.createGenerateSettings();
-            vscode.env.clipboard.writeText(testClasses.map(c => c.generate(generateSettings)).join("\n\n"));
+                const generateSettings = this.createGenerateSettings();
+                vscode.env.clipboard.writeText(testClasses.map(c => c.generate(generateSettings)).join("\n\n"));
+            }
+            catch (e: any) {
+                this.outputChannel.appendLine(`${documentRelativePath}: ${e}`);
+                return;
+            }
 
-            this.outputChannel.appendLine("Sent test class(es) to clipboard.");
+            this.outputChannel.appendLine(`${documentRelativePath}: Sent test class(es) to clipboard.`);
         });
     }
 
@@ -49,14 +56,21 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
 
             const document = vscode.window.activeTextEditor?.document;
             if (!document) { return; }
+            const documentRelativePath = vscode.workspace.asRelativePath(document.uri);
 
             const testProject = await this.getTestProject();
             if (!testProject) { return; }
 
-            const testClasses = await this.createTestClassesForDocument(document);
-            if (!testClasses) { return; }
+            try {
+                const testClasses = await this.createTestClassesForDocument(document);
+                if (!testClasses) { return; }
 
-            await this.writeOrAppendToTestFiles(testClasses, testProject);
+                await this.writeOrAppendToTestFiles(testClasses, testProject);
+            }
+            catch (e: any) {
+                this.outputChannel.appendLine(`${documentRelativePath}: ${e}`);
+                return;
+            }
         });
     }
 
@@ -86,7 +100,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
                 return;
             }
 
-            const cSharpFiles = (await vscode.workspace.findFiles("**/*.cs")).filter(f => f.path.includes(activeProject.directory));
+            const cSharpFiles = (await vscode.workspace.findFiles("**/*.cs")).filter(f => f.path.includes(activeProject.directory + "/"));
             if (cSharpFiles.length === 0) {
                 this.outputChannel.appendLine(`${activeProject.relativePath}: No C# files found.`);
                 return;
@@ -97,8 +111,13 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
 
             let testClasses: CSharpXunitTestClass[] = [];
             for await (const cSharpFile of cSharpFiles) {
-                const testClassesForFile = await this.createTestClassesForDocument(await vscode.workspace.openTextDocument(cSharpFile));
-                if (testClassesForFile) { testClasses.push(...testClassesForFile); }
+                try {
+                    const testClassesForFile = await this.createTestClassesForDocument(await vscode.workspace.openTextDocument(cSharpFile));
+                    if (testClassesForFile) { testClasses.push(...testClassesForFile); }
+                }
+                catch (e: any) {
+                    this.outputChannel.appendLine(`${vscode.workspace.asRelativePath(cSharpFile)}: ${e}`);
+                }
             }
 
             if (testClasses.length === 0) {
@@ -115,6 +134,8 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         const editConfig = vscode.workspace.getConfiguration("editor");
 
         const generateSettings = new CSharpXunitTestGenerateSettings();
+        generateSettings.defaultNamespace = ddtConfig.get("defaultNamespace") as string;
+        generateSettings.doNothingRegardingNullability = ddtConfig.get("doNothingRegardingNullability") as boolean;
         generateSettings.indentation = editConfig.get("insertSpaces") as boolean ? " ".repeat(editConfig.get("tabSize") as number) : "\t";
         generateSettings.indicateTypeNullability = ddtConfig.get("indicateTypeNullability") as boolean;
         generateSettings.objectTypeForGenericParameters = ddtConfig.get("objectTypeForGenericParameters") as boolean;
@@ -129,79 +150,27 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
 
     private async createTestClassesForDocument(document: vscode.TextDocument): Promise<CSharpXunitTestClass[] | undefined> {
         return await VSCodeCSharp.parseTextDocument(this.outputChannel, document).then(cSharpClasses => {
+            const documentRelativePath = vscode.workspace.asRelativePath(document.uri);
             if (!cSharpClasses || cSharpClasses.length === 0) {
-                this.outputChannel.appendLine(`${document.uri.path}: No C# class found.`);
+                this.outputChannel.appendLine(`${documentRelativePath}: No C# class found.`);
                 return;
             }
 
             const testableClasses = cSharpClasses.filter(c => c.isPublic && !c.isStatic && !c.isAbstract);
             if (testableClasses.length === 0) {
-                this.outputChannel.appendLine(`${document.uri.path}: No testable class found.`);
+                this.outputChannel.appendLine(`${documentRelativePath}: No testable class found.`);
                 return;
             }
 
             const testClasses = testableClasses.map(c => new CSharpXunitTestClass(c)).filter(c => c.testMethods.length > 0);
             if (testClasses.length === 0) {
-                this.outputChannel.appendLine(`${document.uri.path}: No class with testable method found.`);
+                this.outputChannel.appendLine(`${documentRelativePath}: No class with testable method found.`);
                 return;
             }
 
             return testClasses;
         });
     }
-
-    /*private async createTestClassesForDocument2(document: vscode.TextDocument): Promise<CSharpXunitTestClass[] | undefined> {
-        return await vscode.commands.executeCommand("vscode.executeDocumentSymbolProvider", document.uri).then(ds => {
-            const documentRelativePath = vscode.workspace.asRelativePath(document.uri);
-            const documentSymbols = ds as vscode.DocumentSymbol[];
-            if (!ds || !documentSymbols || documentSymbols.length === 0) {
-                this.outputChannel.appendLine(`${documentRelativePath}: No C# symbols found.`);
-                return;
-            }
-
-            const cSharpSymbols = CSharpSymbol2.createCSharpSymbols(documentSymbols, document);
-            if (!cSharpSymbols || cSharpSymbols.length === 0) {
-                this.outputChannel.appendLine(`${documentRelativePath}: No C# symbols found.`);
-                return;
-            }
-
-            const classesToCreateTestClassesFor: CSharpSymbol2[] = [];
-            for (const cSharpSymbol of cSharpSymbols) {
-                if (cSharpSymbol instanceof CSharpNamespace2) {
-                    classesToCreateTestClassesFor.push(...cSharpSymbol.classes.filter(c => c.isPublic && !c.isStatic && !c.isAbstract));
-                }
-                else if (cSharpSymbol instanceof CSharpSymbol2 && cSharpSymbol.symbolType === CSharpSymbolType.class && cSharpSymbol.isPublic && !cSharpSymbol.isStatic && !cSharpSymbol.isAbstract) {
-                    classesToCreateTestClassesFor.push(cSharpSymbol);
-                }
-            }
-            if (classesToCreateTestClassesFor.length === 0) {
-                this.outputChannel.appendLine(`${documentRelativePath}: No testable class found.`);
-                return;
-            }
-
-            return classesToCreateTestClassesFor.map(c => new CSharpXunitTestClass(c)).filter(c => c.testMethods.length > 0);
-
-            /*const namespaces = documentSymbols.filter(ds => ds.kind === vscode.SymbolKind.Namespace).map(ds => new CSharpNamespaceInfo(ds, document!));
-            if (namespaces.length === 0) {
-                this.outputChannel.appendLine(`${documentRelativePath}: No namespace found.`);
-                return;
-            }
-            else if (namespaces.length > 1) {
-                this.outputChannel.appendLine(`${documentRelativePath}: Multiple namespaces found. This is currently not supported.`);
-                return;
-            }
-
-            const testClasses = namespaces[0].classes.filter(c => c.isPublic && !c.isStatic && !c.isAbstract).map(c => new CSharpXunitTestClass(c)).filter(c => c.testMethods.length > 0);
-            if (testClasses.length === 0) {
-                this.outputChannel.appendLine(`${documentRelativePath}: No testable class found.`);
-                return;
-            }
-
-            this.outputChannel.appendLine(`${documentRelativePath}: ${testClasses.length} testable class(es) found.`);
-
-            return testClasses;* /
-        });
-    }*/
 
     private async getTestProject(): Promise<CSharpProjectFile | undefined> {
         const testProjects = (await CSharpProjectFile.findProjects(this.workspaceFolder!.uri.path)).filter(p => p.isTestProject);

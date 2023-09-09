@@ -58,9 +58,21 @@
         "configuration": {
             "title": "Development-Driven Testing (DDT)",
             "properties": {
+                "ddt.defaultNamespace": {
+                    "title": "Default Namespace",
+                    "description": "For C# files with classes without namespaces, namespace to use for generated test classes.",
+                    "type": "string",
+                    "default": "DevelopmentDrivenTesting"
+                },
+                "ddt.doNothingRegardingNullability": {
+                    "title": "Do Nothing Regarding Nullability",
+                    "description": "Do nothing regarding nullability. Settings `ddt.indicateTypeNullability` and `ddt.typesNotToBeIndicatedAsNullable` will be ignored. Original nullability on types will be used.",
+                    "type": "boolean",
+                    "default": true
+                },
                 "ddt.indicateTypeNullability": {
                     "title": "Indicate Type Nullability",
-                    "description": "Appends `?` to types that can be assigned null.",
+                    "description": "If `true`, nullability is indicated by appending `?` to types that can be assigned `null`. If `false`, nullability is removed. (This is mostly used to limit IDE warnings after tests are generated and before actual test logic is added.)",
                     "type": "boolean",
                     "default": false
                 },
@@ -155,11 +167,14 @@
                 },
                 "ddt.warningsToDisable": {
                     "title": "Warnings to Disable",
-                    "description": "Warnings to disable in generated test classes.",
+                    "description": "Warnings to disable in generated test classes. (This is mostly used to limit IDE warnings.)",
                     "type": "array",
                     "default": [
+                        "CS8632",
                         "IDE0018",
-                        "IDE0059"
+                        "IDE0059",
+                        "IDE0090",
+                        "xUnit1024"
                     ]
                 }
             }
@@ -175,8 +190,7 @@
                     "when": "editorLangId == csharp"
                 },
                 {
-                    "command": "kokoabim.ddt.create-test-files-for-project",
-                    "when": "editorLangId == csharp"
+                    "command": "kokoabim.ddt.create-test-files-for-project"
                 }
             ]
         }

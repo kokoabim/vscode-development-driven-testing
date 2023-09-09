@@ -2,6 +2,8 @@
  * C# Xunit test generation settings
  */
 export class CSharpXunitTestGenerateSettings {
+    defaultNamespace: string = "DevelopmentDrivenTesting";
+    doNothingRegardingNullability: boolean = true;
     indentation: string = "    ";
     indicateTypeNullability: boolean = false;
     objectTypeForGenericParameters: boolean = true;
@@ -62,7 +64,7 @@ export class CSharpXunitTestGenerateSettings {
     ];
     useOnlyNewOperatorForInstanceInstantiation: boolean = false;
     usingsFileContent: string = "global using Xunit;\n";
-    warningsToDisable: string[] = ["IDE0018", "IDE0059"];
+    warningsToDisable: string[] = ["CS8632", "IDE0018", "IDE0059", "IDE0090", "xUnit1024"];
 
     indent(level: number): string {
         return this.indentation.repeat(level);

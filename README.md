@@ -11,8 +11,12 @@ Generate C#/.NET Xunit test class with test methods. If test-driven development 
 
 ## Extension Settings
 
+- `ddt.defaultNamespace`
+    - For C# files with classes without namespaces, namespace to use for generated test classes.
+- `ddt.doNothingRegardingNullability`
+    - Do nothing regarding nullability. Settings `ddt.indicateTypeNullability` and `ddt.typesNotToBeIndicatedAsNullable` will be ignored. Original nullability on types will be used.
 - `ddt.indicateTypeNullability`
-    - Appends `?` to types that can be assigned `null`.
+    - If `true`, nullability is indicated by appending `?` to types that can be assigned `null`. If `false`, nullability is removed. (This is mostly used to limit IDE warnings after tests are generated and before actual test logic is added.)
 - `ddt.objectTypeForGenericParameters`
     - Replace generic parameters (e.g. `T`, `T1`, `TKey`, etc) with `object`.
 - `ddt.reservedMethodNames`
@@ -24,7 +28,7 @@ Generate C#/.NET Xunit test class with test methods. If test-driven development 
 - `ddt.useOnlyNewOperatorForInstanceInstantiation`
     - Beginning with C# 9.0, constructor invocation expressions are target-typed. That is, if a target type of an expression is known, you can omit a type name. This setting will use only the `new` operator for instance instantiation.
 - `ddt.warningsToDisable`
-    - Warnings to disable in generated test classes.
+    - Warnings to disable in generated test classes. (This is mostly used to limit IDE warnings.)
 
 ## Known Issues/Limitations
 

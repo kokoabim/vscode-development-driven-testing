@@ -8,19 +8,24 @@ export class CSharpXunitTestMethod {
     private _cSharpClass: CSharpClass;
     private _cSharpMethod: CSharpMethod;
     private _genericParameters: string[] = [];
+    private _testMethodNameOverride?: string;
 
-    private _genericParameterExpression: RegExp = /^T(\d+|[A-Z]+[a-z0-9_]*?)$/; // ex: T1, TKey, TValue1
+    private _genericParameterExpression: RegExp = /^T(\d+|[A-Z]*?[a-z0-9_]*?)$/; // ex: T1, TKey, TValue1
 
-    constructor(classSymbol: CSharpClass, methodSymbol: CSharpMethod) {
+    constructor(classSymbol: CSharpClass, methodSymbol: CSharpMethod, testMethodNameOverride?: string) {
         this._cSharpClass = classSymbol;
         this._cSharpMethod = methodSymbol;
+        this._testMethodNameOverride = testMethodNameOverride;
 
         if (this._cSharpClass.hasGenerics) { this.getGenericParameters(this._cSharpClass.generics); }
         if (this._cSharpMethod.hasGenerics) { this.getGenericParameters(this._cSharpMethod.generics); }
     };
 
     generate(settings: CSharpXunitTestGenerateSettings): string {
-        const targetConstructor = CSharpXunitTestMethod.getConstructorWithMostParameters(this._cSharpClass.constructors.filter(c => c.isPublic && !c.isStatic && !c.isAbstract));
+        const testableConstructors = this._cSharpClass.constructors.filter(c => c.isPublic && !c.isStatic && !c.isAbstract);
+        const targetConstructor = testableConstructors.length > 0
+            ? CSharpXunitTestMethod.getConstructorWithMostParameters(testableConstructors)
+            : CSharpConstructor.createDefault(this._cSharpClass.name);
 
         // object for Ts
         if (settings.objectTypeForGenericParameters) {
@@ -33,26 +38,28 @@ export class CSharpXunitTestMethod {
         }
 
         // nullability
-        if (!settings.indicateTypeNullability) {
-            const typesNotToRemoveNullability = settings.typesNotToBeIndicatedAsNullable.filter(t => t !== "string" && t !== "System.String" && t !== "String"); // workaround to prevent VS Code warnings
+        if (!settings.doNothingRegardingNullability) {
+            if (!settings.indicateTypeNullability) {
+                const typesNotToRemoveNullability = settings.typesNotToBeIndicatedAsNullable.filter(t => t !== "string" && t !== "System.String" && t !== "String"); // workaround to prevent VS Code warnings
 
-            this.removeTypeNullability(this._cSharpClass.generics, typesNotToRemoveNullability);
-            if (targetConstructor.hasParameters) { this.removeTypeNullability(targetConstructor.parameters.map(p => p.type), typesNotToRemoveNullability); }
+                this.removeTypeNullability(this._cSharpClass.generics, typesNotToRemoveNullability);
+                if (targetConstructor.hasParameters) { this.removeTypeNullability(targetConstructor.parameters.map(p => p.type), typesNotToRemoveNullability); }
 
-            this.removeTypeNullability(this._cSharpMethod.generics, typesNotToRemoveNullability);
-            this.removeTypeNullability([this._cSharpMethod.returnType], typesNotToRemoveNullability);
-            if (this._cSharpMethod.hasParameters) { this.removeTypeNullability(this._cSharpMethod.parameters.map(p => p.type), typesNotToRemoveNullability); }
+                this.removeTypeNullability(this._cSharpMethod.generics, typesNotToRemoveNullability);
+                this.removeTypeNullability([this._cSharpMethod.returnType], typesNotToRemoveNullability);
+                if (this._cSharpMethod.hasParameters) { this.removeTypeNullability(this._cSharpMethod.parameters.map(p => p.type), typesNotToRemoveNullability); }
+            }
+            else {
+                this.applyTypeNullability(this._cSharpClass.generics, settings.typesNotToBeIndicatedAsNullable);
+                if (targetConstructor.hasParameters) { this.applyTypeNullability(targetConstructor.parameters.map(p => p.type), settings.typesNotToBeIndicatedAsNullable); }
+
+                this.applyTypeNullability(this._cSharpMethod.generics, settings.typesNotToBeIndicatedAsNullable);
+                this.applyTypeNullability([this._cSharpMethod.returnType], settings.typesNotToBeIndicatedAsNullable);
+                if (this._cSharpMethod.hasParameters) { this.applyTypeNullability(this._cSharpMethod.parameters.map(p => p.type), settings.typesNotToBeIndicatedAsNullable); }
+            }
         }
-        else {
-            this.applyTypeNullability(this._cSharpClass.generics, settings.typesNotToBeIndicatedAsNullable);
-            if (targetConstructor.hasParameters) { this.applyTypeNullability(targetConstructor.parameters.map(p => p.type), settings.typesNotToBeIndicatedAsNullable); }
 
-            this.applyTypeNullability(this._cSharpMethod.generics, settings.typesNotToBeIndicatedAsNullable);
-            this.applyTypeNullability([this._cSharpMethod.returnType], settings.typesNotToBeIndicatedAsNullable);
-            if (this._cSharpMethod.hasParameters) { this.applyTypeNullability(this._cSharpMethod.parameters.map(p => p.type), settings.typesNotToBeIndicatedAsNullable); }
-        }
-
-        const testMethodNewModifier = settings.reservedMethodNames.indexOf(this._cSharpMethod.name) !== -1 ? "new " : "";
+        const testMethodNewModifier = !this._testMethodNameOverride && settings.reservedMethodNames.indexOf(this._cSharpMethod.name) !== -1 ? "new " : "";
 
         let testMethodReturnTypeName, targetMethodAwaitKeyword, methodReturnTypeName;
         if (this._cSharpMethod.returnType.name === "Task") {
@@ -77,7 +84,7 @@ export class CSharpXunitTestMethod {
         const assertExpectedVsActualLine = methodHasVoidReturn ? "" : settings.indent(1) + `Assert.Equal(expected, actual);\n` + settings.indent(1);
 
         return settings.indent(1) + `[Fact]\n`
-            + settings.indent(1) + `public ${testMethodNewModifier}${testMethodReturnTypeName} ${this._cSharpMethod.name}()\n`
+            + settings.indent(1) + `public ${testMethodNewModifier}${testMethodReturnTypeName} ${this._testMethodNameOverride || this._cSharpMethod.name}()\n`
             + settings.indent(1) + `{\n`
             + settings.indent(2) + `// arrange\n`
             + `${setExpectedValueLine}`
@@ -111,7 +118,7 @@ export class CSharpXunitTestMethod {
 
     private removeTypeNullability(types: CSharpType[], typesNotToRemoveNullability: string[] = []) {
         types.forEach(t => {
-            if (t.isNullable && !typesNotToRemoveNullability.includes(t.name) ) { t.isNullable = false; }
+            if (t.isNullable && !typesNotToRemoveNullability.includes(t.name)) { t.isNullable = false; }
             if (t.isArray) { t.array.forEach(a => { if (a.isNullable) { a.isNullable = false; } }); }
             if (t.hasGenerics) { this.replaceGenericParametersWithObject(t.generics); }
         });

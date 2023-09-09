@@ -106,7 +106,7 @@ export class VSCodeCSharp {
             const line = document.lineAt(i).text.trim();
             if (line === "") { continue; }
 
-            const usingMatch = VSCodeCSharp._usingExpression.exec(document.lineAt(i).text);
+            const usingMatch = VSCodeCSharp._usingExpression.exec(line);
             if (usingMatch && usingMatch.groups) {
                 usings.push(usingMatch.groups.namespace);
                 continue;
@@ -144,10 +144,24 @@ export abstract class CSharpSymbol {
         const rangeEnd = new vscode.Position(symbol.selectionRange.start.line, 0);
         let definition = document.getText(new vscode.Range(symbol.range.start, rangeEnd));
         let i = symbol.selectionRange.start.line;
-        do { definition += document.lineAt(i++).text + "\n"; }
-        while (!definition.includes("{") && !definition.includes("=>") && !definition.includes(";"));
-        i = (i = definition.indexOf("{")) > -1 ? i : (i = definition.indexOf("=>")) > -1 ? i : definition.indexOf(";");
-        definition = definition.substring(0, i).replace(/\s+/g, " ").trim();
+        let line = "";
+        while (!line.startsWith("{") && !line.endsWith("{") && line.startsWith("[") || (!line.includes("{") && !line.includes("=>") && !line.includes(";"))) {
+            line = document.lineAt(i++).text.trim();
+            definition += " " + line;
+        }
+        definition = definition.replace(/\s+/g, " ").trim();
+
+        if (symbol.kind === vscode.SymbolKind.Class) {
+            i = definition.lastIndexOf("{");
+        }
+        else {
+            i = (i = definition.lastIndexOf(") =>") + 1) > 0
+                ? i : (i = definition.lastIndexOf(") where ") + 1) > 0
+                    ? i : (i = definition.lastIndexOf(") {") + 1) > 0
+                        ? i : (i = definition.indexOf(");") + 1);
+        }
+
+        definition = definition.substring(0, i).trim();
 
         if (symbol.kind === vscode.SymbolKind.Class) { return [definition, undefined]; }
 
@@ -412,6 +426,13 @@ export class CSharpConstructor extends CSharpSymbol {
 
     definition(): string {
         return `${this.keywords.join(" ")} ${this.name}(${this.parameters.map(p => p.toString()).join(", ")})`.trim();
+    }
+
+    static createDefault(className: string): CSharpConstructor {
+        const cSharpConstructor = new CSharpConstructor();
+        cSharpConstructor.name = className;
+        cSharpConstructor.keywords.push("public");
+        return cSharpConstructor;
     }
 }
 
