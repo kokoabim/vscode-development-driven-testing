@@ -45,7 +45,7 @@ Most, if not all, of the following you can append "... (for now)". As in, these 
 
 ## Release Notes / Changelog
 
-### 2023-09-08 — 0.1.0
+### 2023-09-09 — 0.1.0
 - A _lot_ of changes. Basically a rewrite.
 
 ### 2023-07-26 — 0.0.1
