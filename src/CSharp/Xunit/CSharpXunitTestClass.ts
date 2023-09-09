@@ -27,7 +27,7 @@ export class CSharpXunitTestClass {
      * Generates test class with test methods
      */
     generate(settings: CSharpXunitTestGenerateSettings, withUsingsAndNamespace: boolean = true): string {
-        return `${withUsingsAndNamespace && this.usings.length > 0 ? `${this.usings.map(u => `using ${u};`).join("\n")}\n\n` : ""}${withUsingsAndNamespace ? `namespace ${this.namespace};\n\n` : ""}${settings.indicateTypeNullability ? "" : '#nullable disable\n'}public class ${this.className}\n{\n${this.testMethods.map(m => m.generate(settings)).join("\n\n")}\n}${settings.indicateTypeNullability ? "" : '\n#nullable restore'}`;
+        return `${withUsingsAndNamespace && this.usings.length > 0 ? `${this.usings.map(u => `using ${u};`).join("\n")}\n\n` : ""}${withUsingsAndNamespace ? `namespace ${this.namespace};\n\n` : ""}${settings.indicateTypeNullability ? "" : '#nullable disable\n'}${settings.warningsToDisable.length > 0 ? "#pragma warning disable " + settings.warningsToDisable.join(", ") + "\n" : ""}public class ${this.className}\n{\n${this.testMethods.map(m => m.generate(settings)).join("\n\n")}\n}${settings.warningsToDisable.length > 0 ? "\n#pragma warning restore " + settings.warningsToDisable.join(", ") : ""}${settings.indicateTypeNullability ? "" : '\n#nullable restore'}`;
     }
 
     static async createUsingsFile(filePath: string): Promise<void> {

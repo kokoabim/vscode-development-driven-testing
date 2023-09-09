@@ -19,35 +19,10 @@ export class CSharpXunitTestMethod {
         if (this._cSharpMethod.hasGenerics) { this.getGenericParameters(this._cSharpMethod.generics); }
     };
 
-    private getGenericParameters(genericTypes: CSharpType[]) {
-        genericTypes.forEach(g => {
-            if (g.hasGenerics) {
-                this.getGenericParameters(g.generics);
-            }
-            else if (this._genericParameterExpression.test(g.name)) {
-                this._genericParameters.push(g.name);
-            }
-        });
-    }
-
-    private removeTypeNullability(types: CSharpType[], typesNotToRemoveNullability: string[] = []) {
-        types.forEach(t => {
-            if (t.isNullable && !typesNotToRemoveNullability.includes(t.name) ) { t.isNullable = false; }
-            if (t.isArray) { t.array.forEach(a => { if (a.isNullable) { a.isNullable = false; } }); }
-            if (t.hasGenerics) { this.replaceGenericParametersWithObject(t.generics); }
-        });
-    }
-
-    private replaceGenericParametersWithObject(types: CSharpType[]) {
-        types.forEach(t => {
-            if (this._genericParameters.includes(t.name)) { t.name = "object"; }
-            if (t.hasGenerics) { this.replaceGenericParametersWithObject(t.generics); }
-        });
-    }
-
     generate(settings: CSharpXunitTestGenerateSettings): string {
         const targetConstructor = CSharpXunitTestMethod.getConstructorWithMostParameters(this._cSharpClass.constructors.filter(c => c.isPublic && !c.isStatic && !c.isAbstract));
 
+        // object for Ts
         if (settings.objectTypeForGenericParameters) {
             this.replaceGenericParametersWithObject(this._cSharpClass.generics);
             if (targetConstructor.hasParameters) { this.replaceGenericParametersWithObject(targetConstructor.parameters.map(p => p.type)); }
@@ -57,15 +32,24 @@ export class CSharpXunitTestMethod {
             if (this._cSharpMethod.hasParameters) { this.replaceGenericParametersWithObject(this._cSharpMethod.parameters.map(p => p.type)); }
         }
 
+        // nullability
         if (!settings.indicateTypeNullability) {
-            const typesNotToRemoveNullability = settings.typesNotToBeIndicatedAsNullable.filter(t => t !== "string" && t !== "System.String" && t !== "String"); // workaround to keep VS Code from complaining
+            const typesNotToRemoveNullability = settings.typesNotToBeIndicatedAsNullable.filter(t => t !== "string" && t !== "System.String" && t !== "String"); // workaround to prevent VS Code warnings
 
-            this.removeTypeNullability(this._cSharpClass.generics);
+            this.removeTypeNullability(this._cSharpClass.generics, typesNotToRemoveNullability);
             if (targetConstructor.hasParameters) { this.removeTypeNullability(targetConstructor.parameters.map(p => p.type), typesNotToRemoveNullability); }
 
-            this.removeTypeNullability(this._cSharpMethod.generics);
-            this.removeTypeNullability([this._cSharpMethod.returnType]);
+            this.removeTypeNullability(this._cSharpMethod.generics, typesNotToRemoveNullability);
+            this.removeTypeNullability([this._cSharpMethod.returnType], typesNotToRemoveNullability);
             if (this._cSharpMethod.hasParameters) { this.removeTypeNullability(this._cSharpMethod.parameters.map(p => p.type), typesNotToRemoveNullability); }
+        }
+        else {
+            this.applyTypeNullability(this._cSharpClass.generics, settings.typesNotToBeIndicatedAsNullable);
+            if (targetConstructor.hasParameters) { this.applyTypeNullability(targetConstructor.parameters.map(p => p.type), settings.typesNotToBeIndicatedAsNullable); }
+
+            this.applyTypeNullability(this._cSharpMethod.generics, settings.typesNotToBeIndicatedAsNullable);
+            this.applyTypeNullability([this._cSharpMethod.returnType], settings.typesNotToBeIndicatedAsNullable);
+            if (this._cSharpMethod.hasParameters) { this.applyTypeNullability(this._cSharpMethod.parameters.map(p => p.type), settings.typesNotToBeIndicatedAsNullable); }
         }
 
         const testMethodNewModifier = settings.reservedMethodNames.indexOf(this._cSharpMethod.name) !== -1 ? "new " : "";
@@ -104,6 +88,40 @@ export class CSharpXunitTestMethod {
             + settings.indent(2) + `${invokeTargetMethod}\n\n`
             + settings.indent(2) + `// assert\n`
             + settings.indent(1) + `${assertExpectedVsActualLine}}`;
+    }
+
+    private getGenericParameters(genericTypes: CSharpType[]) {
+        genericTypes.forEach(g => {
+            if (g.hasGenerics) {
+                this.getGenericParameters(g.generics);
+            }
+            else if (this._genericParameterExpression.test(g.name)) {
+                this._genericParameters.push(g.name);
+            }
+        });
+    }
+
+    private applyTypeNullability(types: CSharpType[], typesNotToBeIndicatedAsNullable: string[]) {
+        types.forEach(t => {
+            if (!t.isNullable && !typesNotToBeIndicatedAsNullable.includes(t.name)) { t.isNullable = true; }
+            if (t.isArray) { t.array.forEach(a => { if (!a.isNullable) { a.isNullable = true; } }); }
+            if (t.hasGenerics) { this.replaceGenericParametersWithObject(t.generics); }
+        });
+    }
+
+    private removeTypeNullability(types: CSharpType[], typesNotToRemoveNullability: string[] = []) {
+        types.forEach(t => {
+            if (t.isNullable && !typesNotToRemoveNullability.includes(t.name) ) { t.isNullable = false; }
+            if (t.isArray) { t.array.forEach(a => { if (a.isNullable) { a.isNullable = false; } }); }
+            if (t.hasGenerics) { this.replaceGenericParametersWithObject(t.generics); }
+        });
+    }
+
+    private replaceGenericParametersWithObject(types: CSharpType[]) {
+        types.forEach(t => {
+            if (this._genericParameters.includes(t.name)) { t.name = "object"; }
+            if (t.hasGenerics) { this.replaceGenericParametersWithObject(t.generics); }
+        });
     }
 
     private static generateArgumentsLines(forTargetOrMethod: string, parameters: CSharpParameter[], indention: string): string {

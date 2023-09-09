@@ -1,8 +1,8 @@
 {
     "name": "ddt",
     "publisher": "spencerjames",
-    "version": "0.0.2",
-    "description": "Generate C#/.NET Xunit test class with test methods. If test-driven development (TDD) wasn't followed initially, try Development-Driven Testing (DDT) to increase code coverage and decrease technical debt.",
+    "version": "0.1.0",
+    "description": "Generate C#/.NET Xunit test class with test methods. If test-driven development (TDD) wasn't followed initially, use Development-Driven Testing (DDT) to generate test classes and test methods to increase code coverage and decrease technical debt.",
     "displayName": "Development-Driven Testing",
     "author": {
         "name": "Spencer James (kokoabim)",
@@ -29,7 +29,7 @@
     "keywords": [
         "xunit",
         "test",
-        "testing",
+        "c#",
         "tdd",
         "ddt"
     ],
@@ -60,7 +60,7 @@
             "properties": {
                 "ddt.indicateTypeNullability": {
                     "title": "Indicate Type Nullability",
-                    "description": "Indicate variable type nullability (i.e. T?).",
+                    "description": "Appends `?` to types that can be assigned null.",
                     "type": "boolean",
                     "default": false
                 },
@@ -119,13 +119,13 @@
                 },
                 "ddt.objectTypeForGenericParameters": {
                     "title": "Object Type for Generic Parameters",
-                    "description": "Use the object type in place of generic type parameters.",
+                    "description": "Replace generic parameters (e.g. `T`, `T1`, `TKey`, etc) with `object`.",
                     "type": "boolean",
                     "default": true
                 },
                 "ddt.reservedMethodNames": {
                     "title": "Reserved Method Names",
-                    "description": "If a class has a method with one of these names, its test method will include the 'new' modifier.",
+                    "description": "If a class has a method with one of these names, its test method will include the `new` modifier.",
                     "type": "array",
                     "default": [
                         "Equals",
@@ -142,8 +142,8 @@
                     "default": "global using Xunit;\n"
                 },
                 "ddt.useOnlyNewOperatorForInstanceInstantiation": {
-                    "title": "Use only 'new' Operator for Instance Instantiation",
-                    "description": "Beginning with C# 9.0, constructor invocation expressions are target-typed. That is, if a target type of an expression is known, you can omit a type name.",
+                    "title": "Use Only `new` Operator for Instance Instantiation",
+                    "description": "Beginning with C# 9.0, constructor invocation expressions are target-typed. That is, if a target type of an expression is known, you can omit a type name. This setting will only use the `new` operator for instance instantiation.",
                     "type": "boolean",
                     "default": false
                 },
@@ -152,6 +152,15 @@
                     "description": "If a test class file already exists, this prefix will be added to the test class name and appended to the file.",
                     "type": "string",
                     "default": "Ddt"
+                },
+                "ddt.warningsToDisable": {
+                    "title": "Warnings to Disable",
+                    "description": "Warnings to disable in generated test classes.",
+                    "type": "array",
+                    "default": [
+                        "IDE0018",
+                        "IDE0059"
+                    ]
                 }
             }
         },
@@ -163,6 +172,10 @@
                 },
                 {
                     "command": "kokoabim.ddt.create-test-files-for-file",
+                    "when": "editorLangId == csharp"
+                },
+                {
+                    "command": "kokoabim.ddt.create-test-files-for-project",
                     "when": "editorLangId == csharp"
                 }
             ]

@@ -123,6 +123,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         generateSettings.typesNotToBeIndicatedAsNullable = ddtConfig.get("typesNotToBeIndicatedAsNullable") as string[];
         generateSettings.useOnlyNewOperatorForInstanceInstantiation = ddtConfig.get("useOnlyNewOperatorForInstanceInstantiation") as boolean;
         generateSettings.usingsFileContent = ddtConfig.get("usingsFileContent") as string;
+        generateSettings.warningsToDisable = ddtConfig.get("warningsToDisable") as string[];
         return generateSettings;
     }
 
