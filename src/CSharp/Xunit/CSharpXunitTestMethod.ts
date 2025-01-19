@@ -40,7 +40,7 @@ export class CSharpXunitTestMethod {
         // nullability
         if (!settings.doNothingRegardingNullability) {
             if (!settings.indicateTypeNullability) {
-                const typesNotToRemoveNullability = settings.typesNotToBeIndicatedAsNullable.filter(t => t !== "string" && t !== "System.String" && t !== "String"); // workaround to prevent VS Code warnings
+                const typesNotToRemoveNullability = settings.typesNotToBeIndicatedAsNullable; // TODO: maybe use again? (I think a newer C# version fixes what I saw previously): .filter(t => t !== "string" && t !== "System.String" && t !== "String"); // workaround to prevent VS Code warnings
 
                 this.removeTypeNullability(this._cSharpClass.generics, typesNotToRemoveNullability);
                 if (targetConstructor.hasParameters) { this.removeTypeNullability(targetConstructor.parameters.map(p => p.type), typesNotToRemoveNullability); }

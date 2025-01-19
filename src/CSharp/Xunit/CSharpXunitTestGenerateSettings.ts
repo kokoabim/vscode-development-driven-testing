@@ -3,6 +3,7 @@
  */
 export class CSharpXunitTestGenerateSettings {
     defaultNamespace: string = "DevelopmentDrivenTesting";
+    disableCompilerWarnings: boolean = false;
     doNothingRegardingNullability: boolean = true;
     indentation: string = "    ";
     indicateTypeNullability: boolean = false;

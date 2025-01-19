@@ -1,17 +1,17 @@
 {
     "name": "ddt",
     "publisher": "spencerjames",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Generate C#/.NET Xunit test classes with test methods for single C# files or entire projects.",
     "displayName": "Development-Driven Testing",
     "author": {
-        "name": "Spencer James (kokoabim)",
-        "email": "dev@kokoabim.com",
+        "name": "Spencer James",
+        "email": "apps@swsj.me",
         "url": "https://swsj.me/"
     },
     "bugs": {
         "url": "https://github.com/kokoabim/vscode-development-driven-testing/issues",
-        "email": "dev@kokoabim.com"
+        "email": "apps@swsj.me"
     },
     "repository": {
         "type": "git",
@@ -20,16 +20,16 @@
     "license": "SEE LICENSE IN LICENSE.md",
     "icon": "./dist/media/ddt-icon-128px.png",
     "engines": {
-        "vscode": "^1.70.0"
+        "vscode": "^1.80.0"
     },
     "homepage": "https://github.com/kokoabim/vscode-development-driven-testing/blob/main/README.md",
     "categories": [
         "Testing"
     ],
     "keywords": [
+        "c#",
         "xunit",
         "test",
-        "c#",
         "tdd",
         "ddt"
     ],
@@ -64,6 +64,12 @@
                     "description": "For C# files with classes without namespaces, namespace to use for generated test classes.",
                     "type": "string",
                     "default": "DevelopmentDrivenTesting"
+                },
+                "ddt.disableCompilerWarnings": {
+                    "title": "Disable Compiler Warnings",
+                    "description": "If `true`, certain compiler warnings are disabled in generated test classes. (This is mostly used to limit IDE warnings after tests are generated and before actual test logic is added.)",
+                    "type": "boolean",
+                    "default": false
                 },
                 "ddt.doNothingRegardingNullability": {
                     "title": "Do Nothing Regarding Nullability",
@@ -212,28 +218,23 @@
         }
     },
     "scripts": {
-        "vscode:prepublish": "npm run compile",
+        "vscode:prepublish": "npm install && npm run compile && npm prune --omit=dev",
         "compile": "tsc -p ./ && copyfiles media/ddt-icon-128px.png dist/",
         "watch": "tsc -watch -p ./",
-        "pretest": "npm run compile && npm run lint",
         "lint": "eslint src --ext ts",
-        "test": "node ./dist/test/vscode/runVSCodeTest.js"
+        "run": "npm run compile && npm run lint"
     },
     "devDependencies": {
-        "@types/mocha": "^10.0.1",
         "@types/node": "^20.4.8",
-        "@types/vscode": "^1.70.0",
+        "@types/vscode": "^1.80.0",
         "@typescript-eslint/eslint-plugin": "^6.2.0",
         "@typescript-eslint/parser": "^6.2.0",
         "@vscode/test-electron": "^2.3.3",
         "esbuild": "^0.18.17",
         "eslint": "^8.45.0",
-        "mocha": "^10.2.0",
-        "nyc": "^15.1.0",
         "typescript": "^5.1.6"
     },
     "dependencies": {
-        "glob": "^10.3.3",
-        "minimatch": "9.0.3"
+        "glob": "^10.3.3"
     }
 }

@@ -136,6 +136,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
 
         const generateSettings = new CSharpXunitTestGenerateSettings();
         generateSettings.defaultNamespace = ddtConfig.get("defaultNamespace") as string;
+        generateSettings.disableCompilerWarnings = ddtConfig.get("disableCompilerWarnings") as boolean;
         generateSettings.doNothingRegardingNullability = ddtConfig.get("doNothingRegardingNullability") as boolean;
         generateSettings.indentation = editConfig.get("insertSpaces") as boolean ? " ".repeat(editConfig.get("tabSize") as number) : "\t";
         generateSettings.indicateTypeNullability = ddtConfig.get("indicateTypeNullability") as boolean;

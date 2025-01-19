@@ -5,3 +5,6 @@ releases/
 **/*.vsix
 .nyc_output/
 coverage/
+
+tests/**/bin/
+tests/**/obj/

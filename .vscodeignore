@@ -1,13 +1,11 @@
-.vscode/**
-media/**
-releases/**
-src/**
+.vscode/
+media/
+releases/
+src/
 
 .eslintrc.json
 .gitignore
 .vscodeignore
-jest.config.js
 tsconfig.json
-
-**/.simple-s3-sync.json
 **/*.vsix
+**/CSharpDotNetProject/

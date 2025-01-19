@@ -36,8 +36,8 @@ export class VSCodeCSharp {
     static parseClass(document: vscode.TextDocument, symbol: vscode.DocumentSymbol): CSharpClass {
         const cSharpClass = new CSharpClass();
         cSharpClass.usings = this.parseUsings(document, symbol.range.start.line);
-        cSharpClass.constructors.push(...symbol.children.filter(c => c.kind === vscode.SymbolKind.Constructor).map(constructorSymbol => VSCodeCSharp.parseConstructor(document, constructorSymbol)));
-        cSharpClass.methods.push(...symbol.children.filter(c => c.kind === vscode.SymbolKind.Method).map(methodSymbol => VSCodeCSharp.parseMethod(document, methodSymbol)));
+        cSharpClass.constructors.push(...symbol.children.filter(c => c.kind === vscode.SymbolKind.Constructor || c.name === '.ctor').map(constructorSymbol => VSCodeCSharp.parseConstructor(document, constructorSymbol)));
+        cSharpClass.methods.push(...symbol.children.filter(c => c.kind === vscode.SymbolKind.Method && c.name !== '.ctor').map(methodSymbol => VSCodeCSharp.parseMethod(document, methodSymbol)));
 
         let symbolText, parametersText, attributes, keywords, structureType, implementsText, constraints;
         [symbolText, parametersText] = CSharpSymbol.extract(document, symbol);
@@ -143,6 +143,11 @@ export abstract class CSharpSymbol {
     static extract(document: vscode.TextDocument, symbol: vscode.DocumentSymbol): [symbolText: string, parameters: string | undefined] {
         const rangeEnd = new vscode.Position(symbol.selectionRange.start.line, 0);
         let definition = document.getText(new vscode.Range(symbol.range.start, rangeEnd));
+
+        if (definition.includes("[") && definition.includes("]")) {
+            definition = definition.replace(/\s*\[.*\]\s*/g, "");
+        }
+
         let i = symbol.selectionRange.start.line;
         let line = "";
         while (!line.startsWith("{") && !line.endsWith("{") && line.startsWith("[") || (!line.includes("{") && !line.includes("=>") && !line.includes(";"))) {
@@ -150,6 +155,20 @@ export abstract class CSharpSymbol {
             definition += " " + line;
         }
         definition = definition.replace(/\s+/g, " ").trim();
+
+        if (definition.includes("//")) {
+            definition = definition.replace(/\s*\/\/.*([^\s]+)$/, " $1");
+        }
+
+        if (definition.includes("/*")) {
+            definition = definition.replace(/\s*\/\*.*\*\/\s*([^\s]+)$/, " $1");
+        }
+
+        if (definition.includes("where")) {
+            definition = definition.replace(/\s*where\s+.*([^\s]+)$/, " $1");
+        }
+
+        definition = definition.replace(/\s*:\s*[^\s]+\s*\([^)]*\)\s*([^\s]+)$/, " $1");
 
         if (symbol.kind === vscode.SymbolKind.Class) {
             i = definition.lastIndexOf("{");
@@ -165,12 +184,23 @@ export abstract class CSharpSymbol {
 
         if (symbol.kind === vscode.SymbolKind.Class) { return [definition, undefined]; }
 
-        const nameWithParenthesis = symbol.name.substring(0, symbol.name.indexOf("(") + 1);
+        let symbolName = symbol.name === '.ctor' ? symbol.detail : symbol.name;
+
+        const generic = CSharpSymbol.getGeneric(symbol.detail);
+        if (generic) { symbolName += generic; }
+
+        const nameWithParenthesis = symbolName.indexOf("(") >= 0 ? symbolName.substring(0, symbolName.indexOf("(") + 1) : symbolName + "(";
         const parametersIndex = definition.indexOf(nameWithParenthesis) + nameWithParenthesis.length;
         const keywordsTypeName = definition.substring(0, parametersIndex - 1);
         const parameters = definition.substring(parametersIndex, definition.length - 1).trim();
 
         return [keywordsTypeName, parameters];
+    }
+
+    static getGeneric(detail: string): string {
+        let m = detail.match(/^[^<>()]+(<.+>)\(.*\)$/);
+        if (m) { return m[1]; }
+        else { return ""; }
     }
 
     static removeAttributes(symbolText: string): [symbolText: string, attributes: string[] | undefined] {
@@ -379,7 +409,19 @@ export class CSharpClass extends CSharpSymbol {
     structureType: string = "class";
     usings: string[] = [];
 
-    private static readonly _structureTypes: string[] = ["class", "enum", "interface", "record", "struct"];
+    private static readonly _structureTypes: string[] = [
+        "class",
+        "enum",
+        "interface",
+        "readonly record struct",
+        "readonly ref struct",
+        "readonly struct",
+        "record class",
+        "record struct",
+        "record",
+        "ref struct",
+        "struct",
+    ];
 
     definition(): string {
         let value = `${this.keywords.join(" ")} class ${this.toString()}`;
