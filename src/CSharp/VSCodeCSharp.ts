@@ -148,41 +148,23 @@ export abstract class CSharpSymbol {
             definition = definition.replace(/\s*\[.*\]\s*/g, "");
         }
 
-        let i = symbol.selectionRange.start.line;
-        let line = "";
-        while (!line.startsWith("{") && !line.endsWith("{") && line.startsWith("[") || (!line.includes("{") && !line.includes("=>") && !line.includes(";"))) {
-            line = document.lineAt(i++).text.trim();
-            definition += " " + line;
-        }
-        definition = definition.replace(/\s+/g, " ").trim();
+        let symbolText = symbol.detail;
+        if (symbol.kind === vscode.SymbolKind.Class) {
+            if (symbol.detail.includes(".")) {
+                symbolText = symbolText.substring(symbolText.lastIndexOf(".") + 1);
+            }
 
-        if (definition.includes("//")) {
-            definition = definition.replace(/\s*\/\/.*([^\s]+)$/, " $1");
-        }
-
-        if (definition.includes("/*")) {
-            definition = definition.replace(/\s*\/\*.*\*\/\s*([^\s]+)$/, " $1");
+            if (symbolText.includes("(")) {
+                symbolText = symbolText.substring(0, symbolText.indexOf("("));
+            }
         }
 
-        if (definition.includes("where")) {
-            definition = definition.replace(/\s*where\s+.*([^\s]+)$/, " $1");
-        }
-
-        definition = definition.replace(/\s*:\s*[^\s]+\s*\([^)]*\)\s*([^\s]+)$/, " $1");
+        let accessAndTypeRange = new vscode.Range(symbol.range.start, symbol.selectionRange.start);
+        definition = document.getText(accessAndTypeRange) + symbolText;
 
         if (symbol.kind === vscode.SymbolKind.Class) {
-            i = definition.lastIndexOf("{");
+            return [definition, undefined];
         }
-        else {
-            i = (i = definition.lastIndexOf(") =>") + 1) > 0
-                ? i : (i = definition.lastIndexOf(") where ") + 1) > 0
-                    ? i : (i = definition.lastIndexOf(") {") + 1) > 0
-                        ? i : (i = definition.indexOf(");") + 1);
-        }
-
-        definition = definition.substring(0, i).trim();
-
-        if (symbol.kind === vscode.SymbolKind.Class) { return [definition, undefined]; }
 
         let symbolName = symbol.name === '.ctor' ? symbol.detail : symbol.name;
 

@@ -1,5 +1,9 @@
 ## β Beta
 
+#### 2025-01-18 — 0.2.1
+
+- Fixed issue with primary constructors.
+
 #### 2025-01-18 — 0.2.0
 
 - Reintroducing extension. I pulled it because the VSCode API broke it and I didn't have time to address it.
