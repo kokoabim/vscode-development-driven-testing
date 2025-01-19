@@ -38,16 +38,24 @@ export class CSharpXunitTestClass {
      * Generates test class with test methods
      */
     generate(settings: CSharpXunitTestGenerateSettings, withUsingsAndNamespace: boolean = true): string {
-        const namespace = (this._cSharpClass.namespace || settings.defaultNamespace) + ".Tests";
+        const testClassNamespace = settings.targetProjectNamespace
+            || (this._cSharpClass.namespace
+                ? this._cSharpClass.namespace + ".Tests"
+                : settings.defaultNamespace);
 
         const sb = new StringBuilder();
 
         if (withUsingsAndNamespace) {
+
+            if (this._cSharpClass.namespace && !this._cSharpClass.usings.includes(this._cSharpClass.namespace.name)) {
+                this._cSharpClass.usings.push(this._cSharpClass.namespace.name);
+            }
+
             if (this._cSharpClass.usings.length > 0) {
                 sb.append(this._cSharpClass.usings.map(u => `using ${u};`).join("\n") + "\n\n");
             }
 
-            sb.append(`namespace ${namespace};\n\n`);
+            sb.append(`namespace ${testClassNamespace};\n\n`);
         }
 
         if (settings.disableCompilerWarnings) {

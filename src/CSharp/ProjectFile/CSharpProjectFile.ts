@@ -1,8 +1,9 @@
 import { FileSystem } from '../../Utils/FileSystem';
 
 export class CSharpProjectFile {
-    get directory(): string { return CSharpProjectFile._fileSystem.dirname(this.filePath); }
-    get isTestProject(): boolean { return this._fileContent !== undefined && this._fileContent?.includes('<IsTestProject>true</IsTestProject>'); }
+    defaultNamespace: string | undefined;
+    directory: string | undefined;
+    isTestProject: boolean = false;
 
     private _fileContent: string | undefined;
     private static _fileSystem: FileSystem = new FileSystem();
@@ -23,11 +24,20 @@ export class CSharpProjectFile {
     }
 
     async readFile(): Promise<void> {
-        if (this._fileContent) { return; }
+        this.directory = CSharpProjectFile._fileSystem.dirname(this.filePath);
+
         await CSharpProjectFile._fileSystem.readFile(this.filePath).then(content => {
             this._fileContent = content;
         }, error => {
             throw error;
         });
+
+        if (this._fileContent) {
+            this.defaultNamespace = this._fileContent.match(/<RootNamespace>(.*)<\/RootNamespace>/)?.[1]
+                || this._fileContent!.match(/<AssemblyName>(.*)<\/AssemblyName>/)?.[1]
+                || this.filePath.match(/([^\/\\]+)\.csproj$/)?.[1];
+
+            this.isTestProject = this._fileContent?.includes('<IsTestProject>true</IsTestProject>');
+        }
     }
 }

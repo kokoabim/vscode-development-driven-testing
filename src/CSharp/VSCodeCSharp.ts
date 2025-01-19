@@ -35,6 +35,11 @@ export class VSCodeCSharp {
 
     static parseClass(document: vscode.TextDocument, symbol: vscode.DocumentSymbol): CSharpClass {
         const cSharpClass = new CSharpClass();
+
+        if (symbol.detail.includes(".")) {
+            cSharpClass.namespace = new CSharpNamespace(symbol.detail.substring(0, symbol.detail.lastIndexOf(".")));
+        }
+
         cSharpClass.usings = this.parseUsings(document, symbol.range.start.line);
         cSharpClass.constructors.push(...symbol.children.filter(c => c.kind === vscode.SymbolKind.Constructor || c.name === '.ctor').map(constructorSymbol => VSCodeCSharp.parseConstructor(document, constructorSymbol)));
         cSharpClass.methods.push(...symbol.children.filter(c => c.kind === vscode.SymbolKind.Method && c.name !== '.ctor').map(methodSymbol => VSCodeCSharp.parseMethod(document, methodSymbol)));
@@ -141,12 +146,6 @@ export abstract class CSharpSymbol {
     }
 
     static extract(document: vscode.TextDocument, symbol: vscode.DocumentSymbol): [symbolText: string, parameters: string | undefined] {
-        const rangeEnd = new vscode.Position(symbol.selectionRange.start.line, 0);
-        let definition = document.getText(new vscode.Range(symbol.range.start, rangeEnd));
-
-        if (definition.includes("[") && definition.includes("]")) {
-            definition = definition.replace(/\s*\[.*\]\s*/g, "");
-        }
 
         let symbolText = symbol.detail;
         if (symbol.kind === vscode.SymbolKind.Class) {
@@ -160,7 +159,18 @@ export abstract class CSharpSymbol {
         }
 
         let accessAndTypeRange = new vscode.Range(symbol.range.start, symbol.selectionRange.start);
-        definition = document.getText(accessAndTypeRange) + symbolText;
+        let accessAndType = document.getText(accessAndTypeRange);
+        if (accessAndType.includes("//")) {
+            accessAndType = accessAndType.replace(/\s*\/\/.*\s*/g, "");
+        }
+        if (accessAndType.includes("/*") && accessAndType.includes("*/")) {
+            accessAndType = accessAndType.replace(/\s*\/\*.*\*\/\s*/g, "");
+        }
+        if (accessAndType.includes("[") && accessAndType.includes("]")) {
+            accessAndType = accessAndType.replace(/\s*\[.{2,}\]\s*/g, "");
+        }
+
+        let definition = accessAndType + symbolText;
 
         if (symbol.kind === vscode.SymbolKind.Class) {
             return [definition, undefined];

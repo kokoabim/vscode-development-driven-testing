@@ -1,5 +1,10 @@
 ## β Beta
 
+#### 2025-01-19 — 0.2.2
+
+- Fixed issues relating to namespaces and usings.
+- Fixed a few minor issues testing with different coding styles to provide better support.
+
 #### 2025-01-18 — 0.2.1
 
 - Fixed issue with primary constructors.

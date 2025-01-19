@@ -2,6 +2,8 @@
  * C# Xunit test generation settings
  */
 export class CSharpXunitTestGenerateSettings {
+    targetProjectNamespace: string | undefined; // NOTE: not a user setting; used internally
+
     defaultNamespace: string = "DevelopmentDrivenTesting";
     disableCompilerWarnings: boolean = false;
     doNothingRegardingNullability: boolean = true;

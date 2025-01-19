@@ -16,7 +16,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
 
         this.addCommands(
             this.createCopyTestClassesForFileCommand(),
-            this.createCreateTestFilesForFileCommand(),
+            this.createCreateTestFileForFileCommand(),
             this.createCreateTestFilesForProjectCommand());
 
         CSharpNamespace.defaultName = "DevelopmentDrivenTesting";
@@ -48,8 +48,8 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         });
     }
 
-    private createCreateTestFilesForFileCommand(): VSCodeCommand {
-        return new VSCodeCommand("kokoabim.ddt.create-test-files-for-file", async () => {
+    private createCreateTestFileForFileCommand(): VSCodeCommand {
+        return new VSCodeCommand("kokoabim.ddt.create-test-file-for-file", async () => {
             if (!super.isWorkspaceReady()) { return; }
             const [document, documentRelativePath] = await this.cSharpFileOrProjectOpenOrSelected();
             if (!document) { return; }
@@ -219,12 +219,16 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
     private async writeOrAppendToTestFiles(testClasses: CSharpXunitTestClass[], testProject: CSharpProjectFile, openFile: boolean = true) {
         const generateSettings = this.createGenerateSettings();
 
+        if (testProject.defaultNamespace) {
+            generateSettings.targetProjectNamespace = testProject.defaultNamespace;
+        }
+
         let appendedCount = 0;
         let createdCount = 0;
         let createdUsingsFile = false;
 
         for await (const testClass of testClasses) {
-            const testFilePath = this.fileSystem.joinPaths(testProject.directory, testClass.fileName);
+            const testFilePath = this.fileSystem.joinPaths(testProject.directory!, testClass.fileName);
             const relativeTestFilePath = vscode.workspace.asRelativePath(testFilePath);
 
             if (await this.fileSystem.exists(testFilePath)) {
@@ -244,7 +248,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
             if (openFile) { await vscode.window.showTextDocument(vscode.Uri.file(testFilePath)); }
         }
 
-        const usingsFilePath = this.fileSystem.joinPaths(testProject.directory, CSharpXunitTestClass.usingsFileName);
+        const usingsFilePath = this.fileSystem.joinPaths(testProject.directory!, CSharpXunitTestClass.usingsFileName);
         if (!(await this.fileSystem.exists(usingsFilePath)) && generateSettings.usingsFileContent) {
             await this.fileSystem.writeFile(usingsFilePath, generateSettings.usingsFileContent);
             createdUsingsFile = true;
