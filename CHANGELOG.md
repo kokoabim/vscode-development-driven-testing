@@ -1,5 +1,9 @@
 ## β Beta
 
+#### 2025-01-19 — 0.2.3
+
+- Extension following common UI conventions. Vague, I know. Basically wording and location of context menu items.
+
 #### 2025-01-19 — 0.2.2
 
 - Fixed issues relating to namespaces and usings.

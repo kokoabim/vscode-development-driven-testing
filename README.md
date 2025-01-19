@@ -1,6 +1,6 @@
 ## Features
 
-Generate C#/.NET Xunit test classes with test methods for a single C# file or entire C# project.
+Generate C# Xunit test class files for C# files or entire C# projects.
 
 If test-driven development (TDD) wasn't followed initially, use Development-Driven Testing (DDT) to generate test classes and test methods to increase code coverage and decrease technical debt. Or, use DDT while practicing TDD to generate boilerplate test classes and test methods.
 
@@ -8,7 +8,7 @@ If test-driven development (TDD) wasn't followed initially, use Development-Driv
 
 ## Requirements
 
-- C#/.NET project with Xunit test project.
+- C# project with a test project.
     - Test projects must have property `IsTestProject` set to `true` to be recognized as a test project.
     - Multiple test projects are supported.
 - Tech debt; missing unit tests. 🤷🏼‍♂️

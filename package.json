@@ -1,8 +1,8 @@
 {
     "name": "ddt",
     "publisher": "spencerjames",
-    "version": "0.2.2",
-    "description": "Generate C#/.NET Xunit test classes with test methods for single C# files or entire projects.",
+    "version": "0.2.3",
+    "description": "Generate C# Xunit test class files for C# files or entire C# projects.",
     "displayName": "Development-Driven Testing",
     "author": {
         "name": "Spencer James",
@@ -39,23 +39,59 @@
         "commands": [
             {
                 "category": "DDT",
-                "title": "Copy C# Xunit test classes for file",
+                "title": "Copy Xunit Test Class(es)",
                 "command": "kokoabim.ddt.copy-test-classes-for-file",
                 "enablement": "editorLangId == csharp || resourceLangId == csharp"
             },
             {
                 "category": "DDT",
-                "title": "Create C# Xunit test files for file",
+                "title": "Create Xunit Test File(s)",
                 "command": "kokoabim.ddt.create-test-file-for-file",
                 "enablement": "editorLangId == csharp || resourceLangId == csharp"
             },
             {
                 "category": "DDT",
-                "title": "Create C# Xunit test files for project",
+                "title": "Create Xunit Test Files For All Files In Project...",
                 "command": "kokoabim.ddt.create-test-files-for-project",
                 "enablement": "editorLangId == csharp || resourceLangId == csharp || resourceExtname == .csproj"
             }
         ],
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "kokoabim.ddt.copy-test-classes-for-file",
+                    "when": "editorLangId == csharp || resourceLangId == csharp",
+                    "group": "9_cutcopypaste"
+                },
+                {
+                    "command": "kokoabim.ddt.create-test-file-for-file",
+                    "when": "editorLangId == csharp || resourceLangId == csharp",
+                    "group": "1_modification"
+                },
+                {
+                    "command": "kokoabim.ddt.create-test-files-for-project",
+                    "when": "editorLangId == csharp || resourceLangId == csharp || resourceExtname == .csproj",
+                    "group": "1_modification"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "kokoabim.ddt.copy-test-classes-for-file",
+                    "when": "editorLangId == csharp || resourceLangId == csharp",
+                    "group": "5_cutcopypaste"
+                },
+                {
+                    "command": "kokoabim.ddt.create-test-file-for-file",
+                    "when": "editorLangId == csharp || resourceLangId == csharp",
+                    "group": "7_modification"
+                },
+                {
+                    "command": "kokoabim.ddt.create-test-files-for-project",
+                    "when": "editorLangId == csharp || resourceLangId == csharp || resourceExtname == .csproj",
+                    "group": "7_modification"
+                }
+            ]
+        },
         "configuration": {
             "title": "Development-Driven Testing (DDT)",
             "properties": {
@@ -185,36 +221,6 @@
                     ]
                 }
             }
-        },
-        "menus": {
-            "editor/context": [
-                {
-                    "command": "kokoabim.ddt.copy-test-classes-for-file",
-                    "when": "resourceLangId == csharp"
-                },
-                {
-                    "command": "kokoabim.ddt.create-test-file-for-file",
-                    "when": "resourceLangId == csharp"
-                },
-                {
-                    "command": "kokoabim.ddt.create-test-files-for-project",
-                    "when": "resourceLangId == csharp || resourceExtname == .csproj"
-                }
-            ],
-            "explorer/context": [
-                {
-                    "command": "kokoabim.ddt.copy-test-classes-for-file",
-                    "when": "editorLangId == csharp || resourceLangId == csharp"
-                },
-                {
-                    "command": "kokoabim.ddt.create-test-file-for-file",
-                    "when": "editorLangId == csharp || resourceLangId == csharp"
-                },
-                {
-                    "command": "kokoabim.ddt.create-test-files-for-project",
-                    "when": "editorLangId == csharp || resourceLangId == csharp || resourceExtname == .csproj"
-                }
-            ]
         }
     },
     "scripts": {
