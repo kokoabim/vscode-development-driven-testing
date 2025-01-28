@@ -5,6 +5,7 @@ import { CSharpXunitTestGenerateSettings } from "../CSharp/Xunit/CSharpXunitTest
 import { VSCodeCommand } from "./VSCodeCommand";
 import { VSCodeExtension } from "./VSCodeExtension";
 import { CSharpNamespace, VSCodeCSharp } from "../CSharp/VSCodeCSharp";
+import { CSharpParseSettings } from "../CSharp/CSharpParseSettings";
 
 /**
  * Development-Driven Testing (DDT) VSCode extension
@@ -74,6 +75,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         return new VSCodeCommand("kokoabim.ddt.create-test-files-for-project", async () => {
             if (!super.isWorkspaceReady()) { return; }
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const [document, documentRelativePath] = await this.cSharpFileOrProjectOpenOrSelected();
             if (!document) { return; }
 
@@ -134,24 +136,33 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         const ddtConfig = vscode.workspace.getConfiguration(this.configurationSection);
         const editConfig = vscode.workspace.getConfiguration("editor");
 
-        const generateSettings = new CSharpXunitTestGenerateSettings();
-        generateSettings.defaultNamespace = ddtConfig.get("defaultNamespace") as string;
-        generateSettings.disableCompilerWarnings = ddtConfig.get("disableCompilerWarnings") as boolean;
-        generateSettings.doNothingRegardingNullability = ddtConfig.get("doNothingRegardingNullability") as boolean;
-        generateSettings.indentation = editConfig.get("insertSpaces") as boolean ? " ".repeat(editConfig.get("tabSize") as number) : "\t";
-        generateSettings.indicateTypeNullability = ddtConfig.get("indicateTypeNullability") as boolean;
-        generateSettings.objectTypeForGenericParameters = ddtConfig.get("objectTypeForGenericParameters") as boolean;
-        generateSettings.reservedMethodNames = ddtConfig.get("reservedMethodNames") as string[];
-        generateSettings.testClassNamePrefixIfFileAlreadyExists = ddtConfig.get("testClassNamePrefixIfFileAlreadyExists") as string;
-        generateSettings.typesNotToBeIndicatedAsNullable = ddtConfig.get("typesNotToBeIndicatedAsNullable") as string[];
-        generateSettings.useOnlyNewOperatorForInstanceInstantiation = ddtConfig.get("useOnlyNewOperatorForInstanceInstantiation") as boolean;
-        generateSettings.usingsFileContent = ddtConfig.get("usingsFileContent") as string;
-        generateSettings.warningsToDisable = ddtConfig.get("warningsToDisable") as string[];
-        return generateSettings;
+        const settings = new CSharpXunitTestGenerateSettings();
+        settings.defaultNamespace = ddtConfig.get("defaultNamespace") as string;
+        settings.disableCompilerWarnings = ddtConfig.get("disableCompilerWarnings") as boolean;
+        settings.doNothingRegardingNullability = ddtConfig.get("doNothingRegardingNullability") as boolean;
+        settings.indentation = editConfig.get("insertSpaces") as boolean ? " ".repeat(editConfig.get("tabSize") as number) : "\t";
+        settings.indicateTypeNullability = ddtConfig.get("indicateTypeNullability") as boolean;
+        settings.objectTypeForGenericParameters = ddtConfig.get("objectTypeForGenericParameters") as boolean;
+        settings.reservedMethodNames = ddtConfig.get("reservedMethodNames") as string[];
+        settings.testClassNamePrefixIfFileAlreadyExists = ddtConfig.get("testClassNamePrefixIfFileAlreadyExists") as string;
+        settings.typesNotToBeIndicatedAsNullable = ddtConfig.get("typesNotToBeIndicatedAsNullable") as string[];
+        settings.useOnlyNewOperatorForInstanceInstantiation = ddtConfig.get("useOnlyNewOperatorForInstanceInstantiation") as boolean;
+        settings.usingsFileContent = ddtConfig.get("usingsFileContent") as string;
+        settings.warningsToDisable = ddtConfig.get("warningsToDisable") as string[];
+        return settings;
+    }
+
+    private createParseSettings(): CSharpParseSettings {
+        const ddtConfig = vscode.workspace.getConfiguration(this.configurationSection);
+
+        const settings = new CSharpParseSettings();
+        settings.methodNamesToIgnore = ddtConfig.get("methodNamesToIgnore") as string[];
+
+        return settings;
     }
 
     private async createTestClassesForDocument(document: vscode.TextDocument): Promise<CSharpXunitTestClass[] | undefined> {
-        return await VSCodeCSharp.parseTextDocument(this.outputChannel, document).then(cSharpClasses => {
+        return await VSCodeCSharp.parseTextDocument(this.outputChannel, this.createParseSettings(), document).then(cSharpClasses => {
             const documentRelativePath = vscode.workspace.asRelativePath(document.uri);
             if (!cSharpClasses || cSharpClasses.length === 0) {
                 this.outputChannel.appendLine(`${documentRelativePath}: No C# class found.`);
@@ -216,7 +227,7 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         return testProject;
     }
 
-    private async writeOrAppendToTestFiles(testClasses: CSharpXunitTestClass[], testProject: CSharpProjectFile, openFile: boolean = true) {
+    private async writeOrAppendToTestFiles(testClasses: CSharpXunitTestClass[], testProject: CSharpProjectFile, openFile = true) {
         const generateSettings = this.createGenerateSettings();
 
         if (testProject.defaultNamespace) {

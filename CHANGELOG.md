@@ -1,5 +1,10 @@
 ## β Beta
 
+#### 2025-01-27 — 0.2.4
+
+- Added `methodNamesToIgnore` setting to specify method names to ignore when generating unit tests. For example, `Dispose`, `ToString`, etc. This settings has default values.
+- Fixed improperly attempting to generate unit test for the destructor/finalizer method.
+
 #### 2025-01-19 — 0.2.3
 
 - Extension following common UI conventions. Vague, I know. Basically wording and location of context menu items.

@@ -4,20 +4,20 @@
 export class CSharpXunitTestGenerateSettings {
     targetProjectNamespace: string | undefined; // NOTE: not a user setting; used internally
 
-    defaultNamespace: string = "DevelopmentDrivenTesting";
-    disableCompilerWarnings: boolean = false;
-    doNothingRegardingNullability: boolean = true;
-    indentation: string = "    ";
-    indicateTypeNullability: boolean = false;
-    objectTypeForGenericParameters: boolean = true;
-    reservedMethodNames: string[] = [
+    defaultNamespace = "DevelopmentDrivenTesting";
+    disableCompilerWarnings = false;
+    doNothingRegardingNullability = true;
+    indentation = "    ";
+    indicateTypeNullability = false;
+    objectTypeForGenericParameters = true;
+    reservedMethodNames = [
         "Equals",
         "GetHashCode",
         "GetType",
         "MemberwiseClone",
         "ToString"];
-    testClassNamePrefixIfFileAlreadyExists: string = "Ddt";
-    typesNotToBeIndicatedAsNullable: string[] = [
+    testClassNamePrefixIfFileAlreadyExists = "Ddt";
+    typesNotToBeIndicatedAsNullable = [
         "bool",
         "Boolean",
         "byte",
@@ -65,9 +65,9 @@ export class CSharpXunitTestGenerateSettings {
         "ushort",
         "void"
     ];
-    useOnlyNewOperatorForInstanceInstantiation: boolean = false;
-    usingsFileContent: string = "global using Xunit;\n";
-    warningsToDisable: string[] = ["CS8632", "IDE0018", "IDE0059", "IDE0090", "xUnit1024"];
+    useOnlyNewOperatorForInstanceInstantiation = false;
+    usingsFileContent = "global using Xunit;\n";
+    warningsToDisable = ["CS8632", "IDE0018", "IDE0059", "IDE0090", "xUnit1024"];
 
     indent(level: number): string {
         return this.indentation.repeat(level);

@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
 import "../Extensions/String.extensions";
+import { CSharpParseSettings } from "./CSharpParseSettings";
 
 export class VSCodeCSharp {
-    private static _usingExpression: RegExp = /^\s*using\s+(?<namespace>[a-z0-9_\.]+)\s*;\s*?$/i;
+    private static _usingExpression = /^\s*using\s+(?<namespace>[a-z0-9_\.]+)\s*;\s*?$/i;
 
-    static async parseTextDocument(output: vscode.OutputChannel, document: vscode.TextDocument): Promise<CSharpClass[] | undefined> {
+    static async parseTextDocument(output: vscode.OutputChannel, settings: CSharpParseSettings, document: vscode.TextDocument): Promise<CSharpClass[] | undefined> {
         return await vscode.commands.executeCommand("vscode.executeDocumentSymbolProvider", document.uri).then(ds => {
             const documentRelativePath = vscode.workspace.asRelativePath(document.uri);
             const documentSymbols = ds as vscode.DocumentSymbol[];
@@ -20,20 +21,20 @@ export class VSCodeCSharp {
                 const cSharpNamespace = new CSharpNamespace(namespaceSymbol.name);
 
                 cSharpClasses.push(...namespaceSymbol.children.filter(c => c.kind === vscode.SymbolKind.Class).map(classSymbol => {
-                    const cSharpClass = VSCodeCSharp.parseClass(document, classSymbol);
+                    const cSharpClass = VSCodeCSharp.parseClass(settings, document, classSymbol);
                     cSharpClass.namespace = cSharpNamespace;
                     return cSharpClass;
                 }));
             });
 
             // classes without namespaces
-            cSharpClasses.push(...documentSymbols.filter(ds => ds.kind === vscode.SymbolKind.Class).map(classSymbol => VSCodeCSharp.parseClass(document, classSymbol)));
+            cSharpClasses.push(...documentSymbols.filter(ds => ds.kind === vscode.SymbolKind.Class).map(classSymbol => VSCodeCSharp.parseClass(settings, document, classSymbol)));
 
             return cSharpClasses;
         });
     }
 
-    static parseClass(document: vscode.TextDocument, symbol: vscode.DocumentSymbol): CSharpClass {
+    static parseClass(settings: CSharpParseSettings, document: vscode.TextDocument, symbol: vscode.DocumentSymbol): CSharpClass {
         const cSharpClass = new CSharpClass();
 
         if (symbol.detail.includes(".")) {
@@ -42,9 +43,14 @@ export class VSCodeCSharp {
 
         cSharpClass.usings = this.parseUsings(document, symbol.range.start.line);
         cSharpClass.constructors.push(...symbol.children.filter(c => c.kind === vscode.SymbolKind.Constructor || c.name === '.ctor').map(constructorSymbol => VSCodeCSharp.parseConstructor(document, constructorSymbol)));
-        cSharpClass.methods.push(...symbol.children.filter(c => c.kind === vscode.SymbolKind.Method && c.name !== '.ctor').map(methodSymbol => VSCodeCSharp.parseMethod(document, methodSymbol)));
+
+        let childMethods = symbol.children.filter(c => c.kind === vscode.SymbolKind.Method && c.name !== '.ctor' && !(c.name === "Finalize" && c.detail.startsWith("~")));
+        if (settings.methodNamesToIgnore.length > 0) { childMethods = childMethods.filter(m => !settings.methodNamesToIgnore.includes(m.name)); }
+
+        cSharpClass.methods.push(...childMethods.map(methodSymbol => VSCodeCSharp.parseMethod(document, methodSymbol)));
 
         let symbolText, parametersText, attributes, keywords, structureType, implementsText, constraints;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         [symbolText, parametersText] = CSharpSymbol.extract(document, symbol);
         [symbolText, attributes] = CSharpSymbol.removeAttributes(symbolText);
         [symbolText, keywords] = CSharpSymbol.removeSymbolKeywords(symbolText);
@@ -160,26 +166,21 @@ export abstract class CSharpSymbol {
 
         let accessAndTypeRange = new vscode.Range(symbol.range.start, symbol.selectionRange.start);
         let accessAndType = document.getText(accessAndTypeRange);
-        if (accessAndType.includes("//")) {
-            accessAndType = accessAndType.replace(/\s*\/\/.*\s*/g, "");
-        }
-        if (accessAndType.includes("/*") && accessAndType.includes("*/")) {
-            accessAndType = accessAndType.replace(/\s*\/\*.*\*\/\s*/g, "");
-        }
-        if (accessAndType.includes("[") && accessAndType.includes("]")) {
-            accessAndType = accessAndType.replace(/\s*\[.{2,}\]\s*/g, "");
-        }
+
+        if (accessAndType === "~") return [symbolText, undefined];
+
+        if (accessAndType.includes("//")) accessAndType = accessAndType.replace(/\s*\/\/.*\s*/g, "");
+        if (accessAndType.includes("/*") && accessAndType.includes("*/")) accessAndType = accessAndType.replace(/\s*\/\*.*\*\/\s*/g, "");
+        if (accessAndType.includes("[") && accessAndType.includes("]")) accessAndType = accessAndType.replace(/\s*\[.{2,}\]\s*/g, "");
 
         let definition = accessAndType + symbolText;
 
-        if (symbol.kind === vscode.SymbolKind.Class) {
-            return [definition, undefined];
-        }
+        if (symbol.kind === vscode.SymbolKind.Class) return [definition, undefined];
 
         let symbolName = symbol.name === '.ctor' ? symbol.detail : symbol.name;
 
         const generic = CSharpSymbol.getGeneric(symbol.detail);
-        if (generic) { symbolName += generic; }
+        if (generic) symbolName += generic;
 
         const nameWithParenthesis = symbolName.indexOf("(") >= 0 ? symbolName.substring(0, symbolName.indexOf("(") + 1) : symbolName + "(";
         const parametersIndex = definition.indexOf(nameWithParenthesis) + nameWithParenthesis.length;
@@ -240,7 +241,7 @@ export abstract class CSharpSymbol {
         return CSharpSymbol.removeKeywords(symbolText, CSharpSymbol._symbolKeywords);
     }
 
-    static split(text: string, delimiter: string = ","): string[] {
+    static split(text: string, delimiter = ","): string[] {
         const depthIncreased = (c: string) => c === "<" || c === "[" || c === "(";
         const depthDecreased = (c: string) => c === ">" || c === "]" || c === ")";
         const symbols: string[] = [];
@@ -273,7 +274,7 @@ export class CSharpNamespace extends CSharpSymbol {
 
     static defaultName = "Namespace";
 
-    constructor(name: string = CSharpNamespace.defaultName) {
+    constructor(name = CSharpNamespace.defaultName) {
         super();
         this.name = name;
     }
@@ -286,7 +287,7 @@ export class CSharpType extends CSharpSymbol {
     generics: CSharpType[] = [];
     get hasGenerics(): boolean { return this.generics.length > 0; }
     get isArray(): boolean { return this.array.length > 0; }
-    isNullable: boolean = false;
+    isNullable = false;
     get isValueTuple(): boolean { return this.valueTuples.length > 0; }
     valueTuples: CSharpType[] = [];
 
@@ -398,7 +399,7 @@ export class CSharpClass extends CSharpSymbol {
     keywords: string[] = [];
     methods: CSharpMethod[] = [];
     namespace = new CSharpNamespace();
-    structureType: string = "class";
+    structureType = "class";
     usings: string[] = [];
 
     private static readonly _structureTypes: string[] = [
@@ -558,7 +559,7 @@ export class CSharpParameter extends CSharpSymbol {
 }
 
 export class CSharpTypeArrayDimension {
-    constructor(public isNullable: boolean = false) { }
+    constructor(public isNullable = false) { }
 }
 
 export class CSharpParameterValue {

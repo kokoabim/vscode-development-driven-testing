@@ -1,7 +1,7 @@
 {
     "name": "ddt",
     "publisher": "spencerjames",
-    "version": "0.2.3",
+    "version": "0.2.4",
     "description": "Generate C# Xunit test class files for C# files or entire C# projects.",
     "displayName": "Development-Driven Testing",
     "author": {
@@ -107,6 +107,19 @@
                     "type": "boolean",
                     "default": false
                 },
+                "ddt.methodNamesToIgnore": {
+                    "title": "Method Names to Ignore",
+                    "description": "Method names to ignore when generating test methods.",
+                    "type": "array",
+                    "default": [
+                        "Dispose",
+                        "Equals",
+                        "GetHashCode",
+                        "GetType",
+                        "MemberwiseClone",
+                        "ToString"
+                    ]
+                },
                 "ddt.doNothingRegardingNullability": {
                     "title": "Do Nothing Regarding Nullability",
                     "description": "Do nothing regarding nullability. Settings `ddt.indicateTypeNullability` and `ddt.typesNotToBeIndicatedAsNullable` will be ignored. Original nullability on types will be used.",
@@ -180,7 +193,7 @@
                 },
                 "ddt.reservedMethodNames": {
                     "title": "Reserved Method Names",
-                    "description": "If a class has a method with one of these names, its test method will include the `new` modifier.",
+                    "description": "If a class has a method with one of these names, its test method will include the `new` modifier (since the test class itself has these).",
                     "type": "array",
                     "default": [
                         "Equals",
@@ -241,6 +254,7 @@
         "typescript": "^5.1.6"
     },
     "dependencies": {
-        "glob": "^10.3.3"
+        "glob": "^10.3.3",
+        "minimatch": "^10.0.1"
     }
 }

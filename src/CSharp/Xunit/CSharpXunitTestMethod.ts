@@ -10,7 +10,7 @@ export class CSharpXunitTestMethod {
     private _genericParameters: string[] = [];
     private _testMethodNameOverride?: string;
 
-    private _genericParameterExpression: RegExp = /^T(\d+|[A-Z]*?[a-z0-9_]*?)$/; // ex: T1, TKey, TValue1
+    private _genericParameterExpression = /^T(\d+|[A-Z]*?[a-z0-9_]*?)$/; // ex: T1, TKey, TValue1
 
     constructor(classSymbol: CSharpClass, methodSymbol: CSharpMethod, testMethodNameOverride?: string) {
         this._cSharpClass = classSymbol;
@@ -138,97 +138,4 @@ export class CSharpXunitTestMethod {
     private static getConstructorWithMostParameters(constructors: CSharpConstructor[]): CSharpConstructor {
         return constructors.reduce((a, b) => a.parameters.length > b.parameters.length ? a : b);
     }
-
-    /**
-     * Generates test method
-     * /
-    generate(settings: CSharpXunitTestGenerateSettings): string {
-        const awaitTargetMethod = this._methodInfo.type!.base === "Task" ? "await " : "";
-        const classSymbolType = this.getClassSymbolType(settings);
-        const methodReturnType = this.getMethodReturnType(settings);
-        const methodHasVoidReturn = methodReturnType === "void";
-        const methodNewModifier = settings.reservedMethodNames.indexOf(this._methodInfo.name) !== -1 ? "new " : "";
-        const targetConstructorInfo = this.getConstructorWithLongestSignature(this._classInfo.constructors);
-        const testMethodReturnType = this._methodInfo.type!.base === "Task" ? "async Task" : "void";
-
-        const expectedValueLine = !methodHasVoidReturn ? settings.indent(2) + `${methodReturnType} expected = default;\n\n` : "";
-        const methodArgumentsLines = this._methodInfo.parameters.length > 0 ? this._methodInfo.parameters.map(p => settings.indent(2) + `${this.getTypeName(p.typeInfo!, settings)} method_${p.name} = default;`).join("\n") + "\n\n" : "";
-        const targetArgumentsLines = targetConstructorInfo.parameters.length > 0 ? targetConstructorInfo.parameters.map(p => settings.indent(2) + `${this.getTypeName(p.typeInfo!, settings)} target_${p.name} = default;`).join("\n") + "\n\n" : "";
-        const createTargetLine = `${classSymbolType} target = new ${classSymbolType}(${targetConstructorInfo.parameters.map(p => `${p.isOut ? "out " : ""}${p.isRef ? "ref " : ""}target_${p.name}`).join(", ")});`;
-        const callTargetMethodLine = `${(methodHasVoidReturn ? "" : `${methodReturnType} actual = `)}${awaitTargetMethod}target.${this.getMethodSymbolType(settings)}(${this._methodInfo.parameters.map(p => `${p.isOut ? "out " : ""}${p.isRef ? "ref " : ""}method_${p.name}`).join(", ")});`;
-        const assertExpectedVsActualLine = !methodHasVoidReturn ? settings.indent(1) + `Assert.Equal(expected, actual);\n` + settings.indent(1) : "";
-
-        return settings.indent(1) + `[Fact]\n`
-            + settings.indent(1) + `public ${methodNewModifier}${testMethodReturnType} ${this._methodInfo.name}()\n`
-            + settings.indent(1) + `{\n`
-            + settings.indent(2) + `// arrange\n`
-            + `${expectedValueLine}${methodArgumentsLines}${targetArgumentsLines}`
-            + settings.indent(2) + `${createTargetLine}\n\n`
-            + settings.indent(2) + `// act\n`
-            + settings.indent(2) + `${callTargetMethodLine}\n\n`
-            + settings.indent(2) + `// assert\n`
-            + settings.indent(1) + `${assertExpectedVsActualLine}}`;
-    }
-
-    private applyNullability(typeName: string, settings: CSharpXunitTestGenerateSettings): string {
-        return typeName + (settings.indicateTypeNullability && settings.typesNotToBeIndicatedAsNullable.indexOf(typeName) === -1 && !typeName.endsWith("?") ? "?" : "");
-    }
-
-    private getClassSymbolType(settings: CSharpXunitTestGenerateSettings): string {
-        return this._classInfo.generics
-            ? `${this._classInfo.name}<${this.getGenericOrObjectThenApplyNullability(this._classInfo.generics, settings).join(", ")}>`
-            : this._classInfo.name;
-    }
-
-    private getConstructorWithLongestSignature(constructors: CSharpConstructorInfo[]): CSharpConstructorInfo {
-        return constructors.reduce((a, b) => a.signature.length > b.signature.length ? a : b);
-    }
-
-    private getGenericOrObject(generics: CSharpSymbolGenericInfo[], settings: CSharpXunitTestGenerateSettings): string[] {
-        return generics.map(g => (settings.objectTypeForGenericParameters ? "object" : g.fullName) + (g.isArray ? "[]" : ""));
-    }
-
-    private getGenericOrObjectThenApplyNullability(generics: CSharpSymbolGenericInfo[], settings: CSharpXunitTestGenerateSettings): string[] {
-        return this.getGenericOrObject(generics, settings); //.map(g => this.applyNullability(g, settings));
-    }
-
-    private getMethodReturnType(settings: CSharpXunitTestGenerateSettings): string {
-        if (this._methodInfo.type!.base === "Task" &&  this._methodInfo.type!.hasGenerics) {
-            return this._methodInfo.type!.genericTypes.map(g => this.getTypeName(g, settings, true)).join(", ");
-        }
-        else {
-            return "void";
-        }
-    }
-
-    private getMethodSymbolType(settings: CSharpXunitTestGenerateSettings): string {
-        return this._methodInfo.generics
-            ? `${this._methodInfo.name}<${this.getGenericOrObjectThenApplyNullability(this._methodInfo.generics, settings).join(", ")}>`
-            : this._methodInfo.name;
-    }
-
-    private getTypeName(typeInfo: CSharpTypeInfo, settings: CSharpXunitTestGenerateSettings, doNotApplyNullability: boolean = false): string {
-        let typeName = typeInfo.base;
-
-        if (this._generics.map(g => g.base).indexOf(typeInfo.base) !== -1 && settings.objectTypeForGenericParameters) {
-            typeName = "object";
-        }
-
-        if (typeInfo.hasGenerics) {
-            typeName += `<${typeInfo.genericTypes.map(g => this.getTypeName(g, settings, true)).join(", ")}>`;
-        }
-        else if (typeInfo.isTuple) {
-            typeName = `(${typeInfo.tupleTypes.map(t => this.getTypeName(t, settings, true)).join(", ")})`;
-        }
-
-        if (typeInfo.isArray) { typeName += "[]"; }
-
-        if (typeInfo.isNullable) { typeName += "?"; }
-        else if (!doNotApplyNullability) { typeName = this.applyNullability(typeName, settings); }
-
-        if (typeInfo.variableName) { typeName += ` ${typeInfo.variableName}`; }
-
-        return typeName;
-    }
-    */
 }
