@@ -20,7 +20,7 @@
     "license": "SEE LICENSE IN LICENSE.md",
     "icon": "./dist/media/ddt-icon-128px.png",
     "engines": {
-        "vscode": "^1.80.0"
+        "vscode": "^1.96.0"
     },
     "homepage": "https://github.com/kokoabim/vscode-development-driven-testing/blob/main/README.md",
     "categories": [
@@ -237,24 +237,27 @@
         }
     },
     "scripts": {
-        "vscode:prepublish": "npm install && npm run compile && npm prune --omit=dev",
+        "clean": "./clean.sh -y",
         "compile": "tsc -p ./ && copyfiles media/ddt-icon-128px.png dist/",
-        "watch": "tsc -watch -p ./",
-        "lint": "eslint src --ext ts",
-        "run": "npm run compile && npm run lint"
+        "lint": "eslint src",
+        "pretest": "npm install && npm run compile && npm run lint",
+        "rebuild": "./clean.sh -iy && npm run compile",
+        "test": "vscode-test",
+        "vscode:prepublish": "npm run rebuild && npm prune --omit=dev",
+        "watch": "tsc -watch -p ./"
     },
     "devDependencies": {
-        "@types/node": "^20.4.8",
-        "@types/vscode": "^1.80.0",
-        "@typescript-eslint/eslint-plugin": "^6.2.0",
-        "@typescript-eslint/parser": "^6.2.0",
-        "@vscode/test-electron": "^2.3.3",
-        "esbuild": "^0.18.17",
-        "eslint": "^8.45.0",
-        "typescript": "^5.1.6"
+        "@types/node": "^22.x",
+        "@types/vscode": "^1.96.0",
+        "@typescript-eslint/eslint-plugin": "^8.21.0",
+        "@typescript-eslint/parser": "^8.21.0",
+        "@vscode/test-cli": "^0.0.10",
+        "@vscode/test-electron": "^2.4.1",
+        "eslint": "^9.19.0",
+        "typescript": "^5.7.3"
     },
     "dependencies": {
-        "glob": "^10.3.3",
+        "glob": "^11.0.1",
         "minimatch": "^10.0.1"
     }
 }

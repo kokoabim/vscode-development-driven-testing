@@ -3,12 +3,13 @@
 **/*.vsix
 **/CSharpDotNetProject/
 *.sh
-.eslintrc.json
 .gitignore
+.vscode-test.mjs
+.vscode-test/
 .vscode/
 .vscodeignore
-media/
+dist/test/
+eslint.config.mjs
 releases/
 src/
 tsconfig.json
-dist/test/

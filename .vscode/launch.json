@@ -12,20 +12,6 @@
                 "${workspaceFolder}/dist/**/*.js"
             ],
             "preLaunchTask": "${defaultBuildTask}"
-        },
-		{
-			"name": "VSCode Tests",
-			"type": "extensionHost",
-			"request": "launch",
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/dist/test/vscode/index"
-			],
-            "sourceMaps": true,
-			"outFiles": [
-				"${workspaceFolder}/dist/test/vscode/**/*.js"
-			],
-			"preLaunchTask": "${defaultBuildTask}"
-		}
+        }
     ]
 }

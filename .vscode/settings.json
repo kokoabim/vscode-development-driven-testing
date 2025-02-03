@@ -5,7 +5,6 @@
     "search.exclude": {
         "dist": true
     },
-    "typescript.tsc.autoDetect": "on",
     "cSpell.ignoreWords": [
         "Memberwise",
         "copyfiles",
@@ -17,20 +16,4 @@
         "ulong",
         "ushort"
     ],
-    "mocha.options": {
-        "ui": "bdd",
-        "timeout": 10000,
-        "require": [
-            "ts-node/register"
-        ],
-        "colors": true,
-        "recursive": true,
-        "exit": true
-    },
-    "mocha.runTestsOnSave": "true",
-    "mocha.coverage": {
-        "enable": false,
-    },
-    "mocha.files.ignore": "**/vscode/**",
-    "mocha.files.glob": "dist/test/**/*.test.js",
 }
