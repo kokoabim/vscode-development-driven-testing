@@ -1,6 +1,5 @@
 import { CSharpXunitTestGenerateSettings } from "./CSharpXunitTestGenerateSettings";
 import { CSharpXunitTestMethod } from "./CSharpXunitTestMethod";
-import { FileSystem } from '../../Utils/FileSystem';
 import { CSharpClass } from "../VSCodeCSharp";
 import "../../Extensions/Array.extensions";
 import { StringBuilder } from "../../Utils/StringBuilder";
@@ -9,8 +8,6 @@ import { StringBuilder } from "../../Utils/StringBuilder";
  * C# Xunit test class
  */
 export class CSharpXunitTestClass {
-    static readonly usingsFileName = "Usings.cs";
-
     className: string;
     fileName: string;
     testMethods: CSharpXunitTestMethod[] = [];
@@ -24,6 +21,7 @@ export class CSharpXunitTestClass {
         this.fileName = this.className + ".cs";
 
         const testableMethods = cSharpClass.methods.filter(m => m.isPublic && !m.isStatic && !m.isAbstract);
+        // eslint-disable-next-line no-unused-vars
         testableMethods.groupBy("name").forEach((methods, name) => {
             if (methods.length === 1) {
                 this.testMethods.push(new CSharpXunitTestMethod(cSharpClass, methods[0]));

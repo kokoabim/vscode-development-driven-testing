@@ -50,7 +50,7 @@ export class VSCodeCSharp {
         cSharpClass.methods.push(...childMethods.map(methodSymbol => VSCodeCSharp.parseMethod(document, methodSymbol)));
 
         let symbolText, parametersText, attributes, keywords, structureType, implementsText, constraints;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line no-unused-vars
         [symbolText, parametersText] = CSharpSymbol.extract(document, symbol);
         [symbolText, attributes] = CSharpSymbol.removeAttributes(symbolText);
         [symbolText, keywords] = CSharpSymbol.removeSymbolKeywords(symbolText);

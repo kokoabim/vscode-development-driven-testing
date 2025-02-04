@@ -1,9 +1,10 @@
 {
     "name": "ddt",
     "publisher": "spencerjames",
-    "version": "0.2.4",
+    "version": "0.3.0",
     "description": "Generate C# Xunit test class files for C# files or entire C# projects.",
     "displayName": "Development-Driven Testing",
+    "shortName": "DDT",
     "author": {
         "name": "Spencer James",
         "email": "apps@swsj.me",
@@ -53,6 +54,12 @@
                 "category": "DDT",
                 "title": "Create Xunit Test Files For All Files In Project...",
                 "command": "kokoabim.ddt.create-test-files-for-project",
+                "enablement": "editorLangId == csharp || resourceLangId == csharp || resourceExtname == .csproj"
+            },
+            {
+                "category": "DDT",
+                "title": "Add TestServiceProvider Support To Project...",
+                "command": "kokoabim.ddt.add-testserviceprovider-support",
                 "enablement": "editorLangId == csharp || resourceLangId == csharp || resourceExtname == .csproj"
             }
         ],
@@ -232,13 +239,31 @@
                         "IDE0090",
                         "xUnit1024"
                     ]
+                },
+                "ddt.addTestServiceProviderSupport": {
+                    "title": "Add `TestServiceProvider` Support",
+                    "description": "Adds `TestServiceProvider` and `TestServiceProviderConfiguration` support to the test project on any test class generation. This provides existing service collection and service provider functionality from the target project (if it exists), to provide expected dependency injection functionality in test classes.",
+                    "type": "boolean",
+                    "default": false
+                },
+                "ddt.packagesForTestServiceProviderSupport": {
+                    "title": "Packages for `TestServiceProvider` Support",
+                    "description": "Packages to add to project when adding `TestServiceProvider` support.",
+                    "type": "array",
+                    "default": [
+                        "Microsoft.Extensions.Configuration.Json",
+                        "Microsoft.Extensions.DependencyInjection",
+                        "Microsoft.Extensions.Hosting",
+                        "Microsoft.NET.Test.Sdk",
+                        "xunit"
+                    ]
                 }
             }
         }
     },
     "scripts": {
         "clean": "./clean.sh -y",
-        "compile": "tsc -p ./ && copyfiles media/ddt-icon-128px.png dist/",
+        "compile": "tsc -p ./ && copyfiles ./media/ddt-icon-128px.png ./dist/ && copyfiles --flat ./tests/CSharpDotNetProject/tests/CSharpDotNetProject.Tests/TestServiceProvider*.cs ./CSharpTemplates/TestServiceProvider/",
         "lint": "eslint src",
         "pretest": "npm install && npm run compile && npm run lint",
         "rebuild": "./clean.sh -iy && npm run compile",

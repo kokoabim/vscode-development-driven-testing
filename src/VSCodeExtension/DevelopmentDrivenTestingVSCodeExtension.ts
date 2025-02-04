@@ -1,21 +1,23 @@
 import * as vscode from "vscode";
+
+import { CSharpParseSettings } from "../CSharp/CSharpParseSettings";
 import { CSharpProjectFile } from "../CSharp/ProjectFile/CSharpProjectFile";
+import { CSharpNamespace, VSCodeCSharp } from "../CSharp/VSCodeCSharp";
 import { CSharpXunitTestClass } from "../CSharp/Xunit/CSharpXunitTestClass";
 import { CSharpXunitTestGenerateSettings } from "../CSharp/Xunit/CSharpXunitTestGenerateSettings";
 import { VSCodeCommand } from "./VSCodeCommand";
 import { VSCodeExtension } from "./VSCodeExtension";
-import { CSharpNamespace, VSCodeCSharp } from "../CSharp/VSCodeCSharp";
-import { CSharpParseSettings } from "../CSharp/CSharpParseSettings";
+import { FileSystem } from "../Utils/FileSystem";
 
 /**
  * Development-Driven Testing (DDT) VSCode extension
  */
 export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
-
     private constructor(context: vscode.ExtensionContext) {
         super(context, "ddt");
 
         this.addCommands(
+            this.createAddTestServiceProviderSupportCommand(),
             this.createCopyTestClassesForFileCommand(),
             this.createCreateTestFileForFileCommand(),
             this.createCreateTestFilesForProjectCommand());
@@ -25,6 +27,81 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
 
     static use(context: vscode.ExtensionContext) {
         new DevelopmentDrivenTestingVSCodeExtension(context);
+    }
+
+    private async addTestServiceProviderSupportToProjectAsync(project: CSharpProjectFile): Promise<boolean> {
+        const generateSettings = this.createGenerateSettings();
+
+        this.outputLine(`\nAdding TestServiceProvider support to project ${project.name}...`, true);
+
+        const templateFilePaths = await FileSystem.globAsync(FileSystem.joinPaths(this.context.extensionPath, "/CSharpTemplates/TestServiceProvider/", "*.cs"));
+        if (templateFilePaths.length === 0) {
+            this.outputChannel.appendLine("No TestServiceProvider template files found ❌");
+            return false;
+        }
+
+        let fileAlreadyExists = false;
+        for await (const f of templateFilePaths) {
+            const fileName = FileSystem.basename(f);
+            if (await FileSystem.existsAsync(FileSystem.joinPaths(project.directory, fileName))) {
+                this.outputChannel.appendLine(`${fileName} file already exists in project ❌`);
+                fileAlreadyExists = true;
+            }
+        }
+        if (fileAlreadyExists) return false;
+
+        const currentPackages = await project.getPackageReferencesAsync();
+        const packageNamesNeeded = generateSettings.packagesForTestServiceProviderSupport.filter(p => !currentPackages.some(cp => cp.name === p));
+        for await (const packageName of packageNamesNeeded) {
+            this.output(`Adding package reference ${packageName} to project...`);
+            const [dotNetSucceeded, dotNetOutput] = await project.addPackageReferenceAsync(packageName);
+            if (dotNetSucceeded) this.outputLine(" succeeded ✅");
+            else this.outputLine(` failed ❌\n${dotNetOutput}`);
+        }
+
+        this.output(`Adding TestServiceProvider classes...`);
+        for await (const templateFilePath of templateFilePaths) {
+            const classContent = await FileSystem.readFileAsync(templateFilePath);
+            const targetFilePath = FileSystem.joinPaths(project.directory, FileSystem.basename(templateFilePath));
+            await FileSystem.writeFile(targetFilePath, classContent);
+            await vscode.window.showTextDocument(vscode.Uri.file(targetFilePath));
+        }
+        this.outputLine(" succeeded ✅");
+
+        this.outputLine(`TestServiceProvider support added to project 🎉`);
+
+        return true;
+    }
+
+    private async cSharpFileOrProjectOpenOrSelected(): Promise<[vscode.TextDocument | undefined, string | undefined]> {
+        let document;
+        try {
+            document = vscode.window.activeTextEditor?.document;
+            if (!document) {
+                await vscode.commands.executeCommand('copyFilePath');
+                const clipboard = await vscode.env.clipboard.readText();
+                if (clipboard) { document = await vscode.workspace.openTextDocument(clipboard); }
+            }
+        }
+        catch { }
+
+        if (!document) {
+            this.outputChannel.appendLine("No C# file or project is open or selected.");
+            return [undefined, undefined];
+        }
+        const relativePath = vscode.workspace.asRelativePath(document.uri);
+        return [document, relativePath];
+    }
+
+    private createAddTestServiceProviderSupportCommand(): VSCodeCommand {
+        return new VSCodeCommand("kokoabim.ddt.add-testserviceprovider-support", async () => {
+            if (!super.isWorkspaceReady()) return;
+
+            const project = await this.getCSharpProjectFile("Select C# project to add TestServiceProvider support");
+            if (!project) return;
+
+            await this.addTestServiceProviderSupportToProjectAsync(project);
+        });
     }
 
     private createCopyTestClassesForFileCommand(): VSCodeCommand {
@@ -75,11 +152,11 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         return new VSCodeCommand("kokoabim.ddt.create-test-files-for-project", async () => {
             if (!super.isWorkspaceReady()) { return; }
 
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // eslint-disable-next-line no-unused-vars
             const [document, documentRelativePath] = await this.cSharpFileOrProjectOpenOrSelected();
             if (!document) { return; }
 
-            const cSharpProjectFiles = await CSharpProjectFile.findProjects(this.workspaceFolder!.uri.path);
+            const cSharpProjectFiles = await CSharpProjectFile.findProjectsAsync(this.workspaceFolder!);
             if (cSharpProjectFiles.length === 0) {
                 this.outputChannel.appendLine("No C# project found.");
                 return;
@@ -137,12 +214,14 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         const editConfig = vscode.workspace.getConfiguration("editor");
 
         const settings = new CSharpXunitTestGenerateSettings();
+        settings.addTestServiceProviderSupport = ddtConfig.get("addTestServiceProviderSupport") as boolean;
         settings.defaultNamespace = ddtConfig.get("defaultNamespace") as string;
         settings.disableCompilerWarnings = ddtConfig.get("disableCompilerWarnings") as boolean;
         settings.doNothingRegardingNullability = ddtConfig.get("doNothingRegardingNullability") as boolean;
         settings.indentation = editConfig.get("insertSpaces") as boolean ? " ".repeat(editConfig.get("tabSize") as number) : "\t";
         settings.indicateTypeNullability = ddtConfig.get("indicateTypeNullability") as boolean;
         settings.objectTypeForGenericParameters = ddtConfig.get("objectTypeForGenericParameters") as boolean;
+        settings.packagesForTestServiceProviderSupport = ddtConfig.get("packagesForTestServiceProviderSupport") as string[];
         settings.reservedMethodNames = ddtConfig.get("reservedMethodNames") as string[];
         settings.testClassNamePrefixIfFileAlreadyExists = ddtConfig.get("testClassNamePrefixIfFileAlreadyExists") as string;
         settings.typesNotToBeIndicatedAsNullable = ddtConfig.get("typesNotToBeIndicatedAsNullable") as string[];
@@ -185,29 +264,22 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         });
     }
 
-    private async cSharpFileOrProjectOpenOrSelected(): Promise<[vscode.TextDocument | undefined, string | undefined]> {
-        let document;
-        try {
-            document = vscode.window.activeTextEditor?.document;
-            if (!document) {
-                await vscode.commands.executeCommand('copyFilePath');
-                const clipboard = await vscode.env.clipboard.readText();
-                if (clipboard) { document = await vscode.workspace.openTextDocument(clipboard); }
-            }
-        }
-        catch (e) { }
+    private async getCSharpProjectFile(quickPickPlaceholder = "Select C# project"): Promise<CSharpProjectFile | undefined> {
+        const projects = await CSharpProjectFile.findProjectsAsync(this.workspaceFolder!);
 
-        if (!document) {
-            this.outputChannel.appendLine("No C# file or project is open or selected.");
-            return [undefined, undefined];
+        if (projects.length === 0) {
+            this.warning("No C# project found.");
+            return;
         }
-        const relativePath = vscode.workspace.asRelativePath(document.uri);
-        return [document, relativePath];
+
+        if (projects.length === 1) return projects[0];
+
+        const projectSelected = await vscode.window.showQuickPick(projects.map(p => p.relativePath), { placeHolder: quickPickPlaceholder });
+        return projectSelected ? projects.find(p => p.relativePath === projectSelected) : undefined;
     }
 
-
     private async getCSharpTestProjectFile(): Promise<CSharpProjectFile | undefined> {
-        const testProjects = (await CSharpProjectFile.findProjects(this.workspaceFolder!.uri.path)).filter(p => p.isTestProject);
+        const testProjects = (await CSharpProjectFile.findProjectsAsync(this.workspaceFolder!)).filter(p => p.isTestProject);
 
         let testProject: CSharpProjectFile | undefined;
         if (testProjects.length === 0) {
@@ -239,18 +311,18 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
         let createdUsingsFile = false;
 
         for await (const testClass of testClasses) {
-            const testFilePath = this.fileSystem.joinPaths(testProject.directory!, testClass.fileName);
+            const testFilePath = FileSystem.joinPaths(testProject.directory!, testClass.fileName);
             const relativeTestFilePath = vscode.workspace.asRelativePath(testFilePath);
 
-            if (await this.fileSystem.exists(testFilePath)) {
+            if (await FileSystem.existsAsync(testFilePath)) {
                 testClass.className = generateSettings.testClassNamePrefixIfFileAlreadyExists + testClass.className;
-                await this.fileSystem.appendFile(testFilePath, "\n\n" + testClass.generate(generateSettings, false));
+                await FileSystem.appendFile(testFilePath, "\n\n" + testClass.generate(generateSettings, false));
 
                 appendedCount++;
                 this.outputChannel.appendLine(`Appended to ${relativeTestFilePath}`);
             }
             else {
-                await this.fileSystem.writeFile(testFilePath, testClass.generate(generateSettings));
+                await FileSystem.writeFile(testFilePath, testClass.generate(generateSettings));
 
                 createdCount++;
                 this.outputChannel.appendLine(`Created ${relativeTestFilePath}`);
@@ -259,14 +331,16 @@ export class DevelopmentDrivenTestingVSCodeExtension extends VSCodeExtension {
             if (openFile) { await vscode.window.showTextDocument(vscode.Uri.file(testFilePath)); }
         }
 
-        const usingsFilePath = this.fileSystem.joinPaths(testProject.directory!, CSharpXunitTestClass.usingsFileName);
-        if (!(await this.fileSystem.exists(usingsFilePath)) && generateSettings.usingsFileContent) {
-            await this.fileSystem.writeFile(usingsFilePath, generateSettings.usingsFileContent);
+        const usingsFilePath = FileSystem.joinPaths(testProject.directory!, CSharpXunitTestGenerateSettings.usingsFileName);
+        if (!(await FileSystem.existsAsync(usingsFilePath)) && generateSettings.usingsFileContent) {
+            await FileSystem.writeFile(usingsFilePath, generateSettings.usingsFileContent);
             createdUsingsFile = true;
         }
 
         this.outputChannel.appendLine((createdCount > 0 ? `Created ${createdCount} C# Xunit test file(s). ` : "")
             + (appendedCount > 0 ? `Appended to ${appendedCount} C# Xunit test file(s). ` : "")
-            + (createdUsingsFile ? `Created ${CSharpXunitTestClass.usingsFileName} file.` : ""));
+            + (createdUsingsFile ? `Created ${CSharpXunitTestGenerateSettings.usingsFileName} file.` : ""));
+
+        if (generateSettings.addTestServiceProviderSupport) await this.addTestServiceProviderSupportToProjectAsync(testProject);
     }
 }

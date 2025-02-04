@@ -4,12 +4,14 @@
 export class CSharpXunitTestGenerateSettings {
     targetProjectNamespace: string | undefined; // NOTE: not a user setting; used internally
 
+    addTestServiceProviderSupport = false;
     defaultNamespace = "DevelopmentDrivenTesting";
     disableCompilerWarnings = false;
     doNothingRegardingNullability = true;
     indentation = "    ";
     indicateTypeNullability = false;
     objectTypeForGenericParameters = true;
+    packagesForTestServiceProviderSupport: string[] = [];
     reservedMethodNames = [
         "Equals",
         "GetHashCode",
@@ -68,6 +70,8 @@ export class CSharpXunitTestGenerateSettings {
     useOnlyNewOperatorForInstanceInstantiation = false;
     usingsFileContent = "global using Xunit;\n";
     warningsToDisable = ["CS8632", "IDE0018", "IDE0059", "IDE0090", "xUnit1024"];
+
+    static readonly usingsFileName = "Usings.cs";
 
     indent(level: number): string {
         return this.indentation.repeat(level);

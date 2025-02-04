@@ -1,4 +1,6 @@
-﻿namespace CSharpDotNetProject.Tests;
+﻿using DevelopmentDrivenTesting;
+
+namespace CSharpDotNetProject.Tests;
 
 public class Class1Tests
 {

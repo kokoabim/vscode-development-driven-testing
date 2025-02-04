@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CSharpDotNetProject.Tests;
+namespace DevelopmentDrivenTesting;
 
 public class TestServiceProviderConfiguration
 {
@@ -42,7 +42,7 @@ public class TestServiceProviderConfiguration
     public string? RelativePathToTargetProject { get; set; }
 
     /// <summary>
-    /// The base path of the solution. Default is "../../../../.." (which should get to "./" from "./tests/TestProjectName.Tests/bin/Debug/frameworkVersion/"). If set to null, the appsettings files will not be loaded.
+    /// The base path of the solution. Default is "../../../../.." (which should get to "./" from "./tests/TestProjectName.Tests/bin/Debug/frameworkVersion/" at runtime). If set to null, the appsettings files will not be loaded.
     /// </summary>
     public string? SolutionBasePath { get; set; } = TestServiceProvider.DefaultSolutionBasePath;
 

@@ -3,17 +3,37 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
 
-namespace CSharpDotNetProject.Tests;
+namespace DevelopmentDrivenTesting;
 
+/// <summary>
+/// A class that provides a way to build a service provider for testing purposes.
+/// </summary>
 public class TestServiceProvider
 {
+    /// <summary>
+    /// The configuration of the service provider.
+    /// </summary>
     public IConfigurationRoot Configuration { get; }
+
+    /// <summary>
+    /// The default solution base path. Default is "../../../../.." (which should get to "./" from "./tests/TestProjectName.Tests/bin/Debug/frameworkVersion/" at runtime).
+    /// </summary>
     public static string DefaultSolutionBasePath { get; set; } = Path.GetFullPath("../../../../..");
 
+    /// <summary>
+    /// Indicates whether the service provider has been built.
+    /// </summary>
     [MemberNotNullWhen(true, nameof(_serviceProvider))]
     public bool IsServiceProviderBuilt { get; private set; }
 
+    /// <summary>
+    /// The service collection.
+    /// </summary>
     public IServiceCollection ServiceCollection => !IsServiceProviderBuilt ? _serviceCollection : throw new InvalidOperationException("Service provider already built.");
+
+    /// <summary>
+    /// The service provider.
+    /// </summary>
     public IServiceProvider ServiceProvider => _serviceProvider ?? throw new InvalidOperationException("Service provider not built.");
 
     private readonly TestServiceProviderConfiguration _config;
@@ -56,8 +76,6 @@ public class TestServiceProvider
         if (config.BuildServiceProviderOnInstantiation) BuildServiceProvider(config.ConfigureServices);
     }
 
-    #region methods
-
     public TestServiceProvider AddScoped<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>()
         where TService : class
         where TImplementation : class, TService
@@ -88,6 +106,9 @@ public class TestServiceProvider
         return this;
     }
 
+    /// <summary>
+    /// Builds the service provider. Must be called before using the service provider. By default, the service provider is built on instantiation but can be set to not build on instantiation with constructor parameters to allow adding other services before building the service provider.
+    /// </summary>
     public TestServiceProvider BuildServiceProvider(Action<IServiceCollection, IConfiguration>? configureServices = null)
     {
         if (IsServiceProviderBuilt) throw new InvalidOperationException("Service provider already built.");
@@ -103,16 +124,10 @@ public class TestServiceProvider
 
     public IServiceScope CreateScope() => ServiceProvider.GetRequiredService<IServiceScopeFactory>().CreateScope();
 
-    public object GetRequiredService(Type serviceType) => ServiceProvider.GetRequiredService(serviceType);
-
-    public object? GetService(Type serviceType) => ServiceProvider.GetService(serviceType);
-
-    public IEnumerable<T> GetServices<T>() where T : notnull => ServiceProvider.GetServices<T>();
-
-    public IEnumerable<object?> GetServices(Type serviceType) => ServiceProvider.GetServices(serviceType);
-
     public T GetRequiredService<T>() where T : notnull => ServiceProvider.GetRequiredService<T>();
-
+    public object GetRequiredService(Type serviceType) => ServiceProvider.GetRequiredService(serviceType);
     public T? GetService<T>() where T : notnull => ServiceProvider.GetService<T>();
-    #endregion
+    public object? GetService(Type serviceType) => ServiceProvider.GetService(serviceType);
+    public IEnumerable<object?> GetServices(Type serviceType) => ServiceProvider.GetServices(serviceType);
+    public IEnumerable<T> GetServices<T>() where T : notnull => ServiceProvider.GetServices<T>();
 }

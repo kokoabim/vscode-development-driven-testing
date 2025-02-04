@@ -6,3 +6,4 @@ releases/
 
 tests/CSharpDotNetProject/**/bin/
 tests/CSharpDotNetProject/**/obj/
+CSharpTemplates/
