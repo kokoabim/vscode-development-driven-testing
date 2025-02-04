@@ -1,23 +1,25 @@
-using CSharpDotNetProject;
-
-namespace DevelopmentDrivenTesting.Tests;
+﻿namespace CSharpDotNetProject.Tests;
 
 public class Class1Tests
 {
+    private static readonly TestServiceProviderConfiguration _serviceProviderConfig = new("src/CSharpDotNetProject")
+    {
+        ConfigureServices = (services, configuration) => services.AddServices(configuration) // Example
+        // Another example: ConfigureServices = (services, configuration) => IServiceCollectionExtensions.AddServices(services, configuration)
+    };
+
     [Fact]
     public void Foo()
     {
         // arrange
-        string? expected = default;
+        var serviceProvider = new TestServiceProvider(_serviceProviderConfig);
 
-        System.String? method_bar = default;
-
-        Class1 target = new Class1();
+        var target = serviceProvider.GetRequiredService<IClass1>();
 
         // act
-        string? actual = target.Foo(method_bar);
+        var result = target.Foo("test");
 
         // assert
-        Assert.Equal(expected, actual);
+        Assert.Equal("Hello from test", result);
     }
 }
